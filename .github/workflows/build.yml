@@ -1,0 +1,36 @@
+name: CMake
+on: [push, pull_request]
+
+# Based off of https://github.com/raspberrypi/pico-examples/blob/b6ac07f1946271de2817f94d8ffc0425ecb7c2a9/.github/workflows/cmake.yml
+
+env:
+  # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Clean workspace
+      run: |
+        echo "Cleaning up previous run"
+        rm -rf "${{ github.workspace }}"
+        mkdir -p "${{ github.workspace }}"
+
+    - name: Setup build stack
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake python3 build-essential gcc-arm-none-eabi libnewlib-arm-none-eabi libstdc++-arm-none-eabi-newlib
+
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Checkout submodules
+      working-directory: ${{github.workspace}}
+      run: git submodule update --init --recursive
+
+    - name: Setup CMake
+      working-directory: ${{github.workspace}}
+      run: ./setup.sh  
+
