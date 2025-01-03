@@ -10,7 +10,7 @@ export PICO_EXTRAS_PATH=${DIR}/pico-extras
 
 export BUILD_TYPE=Release
 export BUILD_DIR=${DIR}/build
-export PICO_PLATFORM=rp2350
+export PICO_PLATFORM=rp2040
 
 
 
