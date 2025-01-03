@@ -23,8 +23,8 @@
   ; We need to wait for a low to make sure we aren't picking
   ; somewhere in the first line. This pin going high means
   ; we have a frame start
-  wait 0 gpio IN_FRAME_START_PIN_OFFSET
-  wait 1 gpio IN_FRAME_START_PIN_OFFSET
+  wait 0 pin IN_FRAME_START_PIN_OFFSET
+  wait 1 pin IN_FRAME_START_PIN_OFFSET
 
 .wrap_target
 

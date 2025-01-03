@@ -10,6 +10,7 @@ pico_add_extra_outputs(lcd_reader)
 target_link_libraries(lcd_reader
   pico_stdlib
   pico_time
+  pico_multicore
   hardware_pio
   hardware_dma
   hardware_irq

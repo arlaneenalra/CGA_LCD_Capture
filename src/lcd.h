@@ -17,6 +17,9 @@
 // We're going to work with DMA transfers of 32bits.
 #define SCR_DMA_TRANSFERS (SCR_PIXELS / 32)
 
+#define FRAME_COUNT 5
+#define FRAME_BUFFER_LENGTH (FRAME_COUNT + 1)
+
 // Setup IO pins
 #define D0 0
 #define D1 (D0 + 1)
@@ -39,20 +42,25 @@ typedef struct dma_alloc_type {
   dma_channel_config config;
 } dma_alloc_t;
 
+typedef struct queue_frame_type {
+  uint8_t frame;
+  uint16_t dropped;
+  absolute_time_t start, end;
+
+} queue_frame_t;
 
 // define our baseline frame buffer.
 typedef uint32_t scr_frame_buf_t[SCR_FRAME_SIZE];
 
 typedef struct scr_type {
-  scr_frame_buf_t pixels[2];
+  scr_frame_buf_t pixels[FRAME_BUFFER_LENGTH];
   uint8_t frame;
 
   pio_alloc_t pio;
-
   dma_alloc_t dma;
-
 } scr_t;
-
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc, uint base_pin);
 void in_frame_dma_init(scr_t *scr);
+void dump_frame(scr_frame_buf_t pixels);
+void frame_capture_irq();

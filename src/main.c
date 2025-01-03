@@ -1,3 +1,5 @@
+//#define PICO_STDIO_USB_TASK_INTERVAL_US 100
+
 #include <stdio.h>
 #include <string.h>
 
@@ -5,6 +7,8 @@
 
 #include "pico/stdlib.h"
 #include "pico/time.h"
+#include "pico/multicore.h"
+#include "pico/util/queue.h"
 
 #include "hardware/gpio.h"
 #include "pico/binary_info.h"
@@ -14,6 +18,8 @@
 #include "lcd.h"
 
 scr_t scr;
+
+queue_t frame_queue;
 
 void dump_frame(scr_frame_buf_t pixels) {
   uint32_t x, y, j, idx;
@@ -39,10 +45,11 @@ void dump_frame(scr_frame_buf_t pixels) {
         mask = mask >> 1; 
       }
     }
-    puts(line);
+    stdio_put_string(line, 640, true, true);
   }
   putchar('\n');
 }
+
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
@@ -98,7 +105,11 @@ void in_frame_dma_init(scr_t *scr) {
       &(pio->pio->rxf[pio->sm]),
       SCR_DMA_TRANSFERS,
       false);
-
+  
+  // Setup IRQ
+  dma_channel_set_irq0_enabled(dma->channel, true);
+  irq_set_exclusive_handler(DMA_IRQ_0, frame_capture_irq);
+  irq_set_enabled(DMA_IRQ_0, true);
 }
 
 void measure_freqs(void) {
@@ -127,51 +138,88 @@ void measure_freqs(void) {
     // Can't measure clk_ref / xosc as it is the ref
 }
 
-int main() {
-  absolute_time_t start, end;
+void frame_capture_irq() {
+  static queue_frame_t irq_frame = {0, 0, 0, 0};
 
-//  set_sys_clock_khz(250000, true);
+  // cleanly (re)start the PIO
+  pio_sm_set_enabled(scr.pio.pio, scr.pio.sm, false);
+
+  irq_frame.end = get_absolute_time();
+
+  pio_sm_restart(scr.pio.pio, scr.pio.sm);
+  pio_sm_exec(scr.pio.pio, scr.pio.sm, pio_encode_jmp(scr.pio.offset));
+
+  irq_frame.frame = scr.frame;
+
+  // Clear the IRQ
+  dma_channel_acknowledge_irq0(scr.dma.channel);
+
+  // Attempt to push a new frame, or drop a frame
+  // and update the dropped frame counter
+  if (queue_try_add(&frame_queue, &irq_frame)) {
+    // Update to the next frame.
+    scr.frame = (scr.frame + 1) % FRAME_BUFFER_LENGTH;
+
+    irq_frame.dropped = 0;
+  } else {
+    irq_frame.dropped++;
+  }
+
+  irq_frame.start = get_absolute_time();
+ 
+  // Start the next frame capture.
+  pio_sm_set_enabled(scr.pio.pio, scr.pio.sm, true);
+
+  // start the DMA transfer;
+  dma_channel_set_write_addr(
+      scr.dma.channel,
+      &(scr.pixels[scr.frame]),
+      true);
+}
+
+static inline void frame_capture() {
+  static absolute_time_t last_start;
+  absolute_time_t start, end;
+  queue_frame_t frame;
+  uint8_t count = 0;
+
+  while(true) {
+    queue_remove_blocking(&frame_queue, &frame);
+    start = get_absolute_time();
+
+    // Output a frame to USB 
+    dump_frame(scr.pixels[frame.frame]);
+    end = get_absolute_time();
+
+    printf(
+      "Frame: %d Dropped: %d Capture Time: %" PRIu64 "us Frame Time: %" PRIu64 "us Display Time %" PRIu64"us\n" ,
+      frame.frame,
+      frame.dropped,
+      absolute_time_diff_us(frame.start, frame.end),
+      absolute_time_diff_us(last_start, frame.start),
+      absolute_time_diff_us(start, end)
+    );
+
+    last_start = frame.start;
+  }
+}
+
+int main() {
+//  set_sys_clock_khz(48000, true);
 
   stdio_init_all();
 
   in_frame_pio_init(&scr.pio, D0);
   in_frame_dma_init(&scr);
 
+  queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
-  printf("START:\n");
+  multicore_launch_core1(frame_capture);
 
+  // Start capturing frames
+  frame_capture_irq();
+  
   while(true) {
-
-    printf("FRAME:\n");
-    start = get_absolute_time();
-
-    // cleanly (re)start the PIO
-    pio_sm_restart(scr.pio.pio, scr.pio.sm);
-    pio_sm_exec(scr.pio.pio, scr.pio.sm, pio_encode_jmp(scr.pio.offset));
-
-    pio_sm_set_enabled(scr.pio.pio, scr.pio.sm, true);
-
-    // start the DMA transfer;
-    dma_channel_set_read_addr(
-        scr.dma.channel,
-        &(scr.pio.pio->rxf[scr.pio.sm]),
-        false);
-    dma_channel_set_write_addr(
-        scr.dma.channel,
-        &(scr.pixels[scr.frame]),
-        true);
-
-
-    // wait for dma transfer to finish
-    dma_channel_wait_for_finish_blocking(scr.dma.channel);
-    pio_sm_set_enabled(scr.pio.pio, scr.pio.sm, false);
-
-    scr.frame = 1 - scr.frame;
-
-    end = get_absolute_time();
-
-    dump_frame(scr.pixels[1 - scr.frame]);
-
-    printf("Frame: %d Time: %" PRIu64 "us\n", scr.frame, absolute_time_diff_us(start, end));
+    tight_loop_contents();
   }
 }
