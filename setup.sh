@@ -9,8 +9,8 @@ export PICO_SDK_PATH=${DIR}/pico-sdk
 export PICO_EXTRAS_PATH=${DIR}/pico-extras
 
 export BUILD_TYPE=Release
-export BUILD_DIR=${DIR}/build
-export PICO_PLATFORM=rp2040
+
+BUILD_DIR=${DIR}/build
 
 
 
@@ -22,13 +22,21 @@ get_core_count() {
   fi
 }
 
-cmake -E make_directory ${BUILD_DIR}
+setup() {
+  export PICO_PLATFORM
+  export BUILD_DIR=${DIR}/build/${PICO_PLATFORM}
 
-(
-  cd  ${BUILD_DIR}
+  echo "Building for ${PICO_PLATFORM}" 
 
-  cmake .. -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
-  cmake --build . --config $BUILD_TYPE --parallel $(get_core_count)
-)
+  cmake -E make_directory ${BUILD_DIR}
 
+  (
+    cd  ${BUILD_DIR}
 
+    cmake ${DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+    cmake --build . --config $BUILD_TYPE --parallel $(get_core_count)
+  )
+}
+
+PICO_PLATFORM=rp2040 setup 
+PICO_PLATFORM=rp2350 setup 

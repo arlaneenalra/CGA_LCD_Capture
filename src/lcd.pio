@@ -12,7 +12,6 @@
 
 .pio_version 0       // only require PIO 0 (rp2040 comptible)
 
-
 .program in_frame
 
 .fifo rx              // We're only clocking data in. 

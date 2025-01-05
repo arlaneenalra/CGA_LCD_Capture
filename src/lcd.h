@@ -13,11 +13,12 @@
 // is 8 pixels into a single byte. 
 #define SCR_FRAME_SIZE (SCR_PIXELS / 32)
 #define SCR_LINE_SIZE (SCR_WIDTH / 32)
+#define SCR_LINE_BYTE_SIZE (SCR_WIDTH / 8)
 
 // We're going to work with DMA transfers of 32bits.
 #define SCR_DMA_TRANSFERS (SCR_PIXELS / 32)
 
-#define FRAME_COUNT 5
+#define FRAME_COUNT 1 
 #define FRAME_BUFFER_LENGTH (FRAME_COUNT + 1)
 
 // Setup IO pins
@@ -64,3 +65,11 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc, uint base_pin);
 void in_frame_dma_init(scr_t *scr);
 void dump_frame(scr_frame_buf_t pixels);
 void frame_capture_irq();
+void frame_write(const char buf[], uint32_t count);
+ 
+ 
+char *get_6bits(uint8_t in[], uint32_t length, uint32_t offset6bit);
+
+#include "bsp/board_api.h"
+#include "tusb.h"
+#include "pico/unique_id.h"

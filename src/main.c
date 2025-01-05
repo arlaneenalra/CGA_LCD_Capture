@@ -14,47 +14,48 @@
 #include "pico/binary_info.h"
 #include "hardware/clocks.h"
 
-#include "lcd.pio.h"
 #include "lcd.h"
+#include "lcd.pio.h"
+
+#include "libb64/cencode.h"
 
 scr_t scr;
 
 queue_t frame_queue;
 
+const char MARKER[] = "\033[0;0H\e[?25l";
 void dump_frame(scr_frame_buf_t pixels) {
-  uint32_t x, y, j, idx;
-  uint32_t cell;
-  uint32_t mask;
-  char line[641];
+  uint32_t count;
+  char out[22000];
+  char *c = out;
+  
+  base64_encodestate s;
 
-  memset(line, 0, sizeof(line));
 
-  for (y = 0; y < 200; y++) {
-    for (x = 0; x < 20; x++) {
-      cell = pixels[x + (y * SCR_LINE_SIZE)];
+  base64_init_encodestate(&s);
 
-      // Draw pixels
-      mask = 0x80000000;
-      for (j = 0; j < 32; j++) {
-        idx = (x * 32) + j;
-        if (cell & mask) {
-          line[idx] = '*';
-        } else {
-          line[idx] = ' ';
-        }
-        mask = mask >> 1; 
-      }
-    }
-    stdio_put_string(line, 640, true, true);
-  }
-  putchar('\n');
+  count = base64_encode_block(
+      (char *)pixels,
+      SCR_PIXELS / 8,
+      c,
+      &s);
+  c += count;
+  count += base64_encode_blockend(c, &s);
+
+
+  frame_write(MARKER, sizeof(MARKER));
+  frame_write(out, count);
+
+  frame_write("\n\r", 2);
 }
-
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
   for (uint i = 0; i < DOT_CLOCK; i++) {
     gpio_init(i + base_pin);
+//    gpio_disable_pulls(i + base_pin);
+//    gpio_set_input_enabled(i + base_pin, true);
+    //gpio_pull_up(i + base_pin);
     //gpio_set_input_hysteresis_enabled(i + base_pin, false);
   }
 
@@ -68,6 +69,8 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
     true);
 
   hard_assert(rc);
+
+  pio_set_gpio_base(pio_alloc->pio, base_pin);
 
   pio_sm_set_consecutive_pindirs(
     pio_alloc->pio,
@@ -110,32 +113,6 @@ void in_frame_dma_init(scr_t *scr) {
   dma_channel_set_irq0_enabled(dma->channel, true);
   irq_set_exclusive_handler(DMA_IRQ_0, frame_capture_irq);
   irq_set_enabled(DMA_IRQ_0, true);
-}
-
-void measure_freqs(void) {
-    uint f_pll_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_PLL_SYS_CLKSRC_PRIMARY);
-    uint f_pll_usb = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_PLL_USB_CLKSRC_PRIMARY);
-    uint f_rosc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_ROSC_CLKSRC);
-    uint f_clk_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_SYS);
-    uint f_clk_peri = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_PERI);
-    uint f_clk_usb = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_USB);
-    uint f_clk_adc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_ADC);
-#ifdef CLOCKS_FC0_SRC_VALUE_CLK_RTC
-    uint f_clk_rtc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_RTC);
-#endif
-
-    printf("pll_sys  = %dkHz\n", f_pll_sys);
-    printf("pll_usb  = %dkHz\n", f_pll_usb);
-    printf("rosc     = %dkHz\n", f_rosc);
-    printf("clk_sys  = %dkHz\n", f_clk_sys);
-    printf("clk_peri = %dkHz\n", f_clk_peri);
-    printf("clk_usb  = %dkHz\n", f_clk_usb);
-    printf("clk_adc  = %dkHz\n", f_clk_adc);
-#ifdef CLOCKS_FC0_SRC_VALUE_CLK_RTC
-    printf("clk_rtc  = %dkHz\n", f_clk_rtc);
-#endif
-
-    // Can't measure clk_ref / xosc as it is the ref
 }
 
 void frame_capture_irq() {
@@ -204,8 +181,57 @@ static inline void frame_capture() {
   }
 }
 
+// Ignores any data sent to the device for now.
+void cdc_task() {
+  static char buf[64];
+  if (tud_cdc_n_available(1)) {
+    tud_cdc_n_read(1, buf, sizeof(buf));
+  }
+  if (tud_cdc_n_available(0)) {
+    tud_cdc_n_read(0, buf, sizeof(buf));
+  }
+}
+
+// Write data to the the high speed serial port.
+// Warning! Not thread safe!
+void __not_in_flash_func(frame_write)(const char buf[], uint32_t count) {
+  // Dump the write if we're not ready.
+  if (!tud_ready()) {
+    return;
+  }
+ 
+  // Loop until we've written everything
+  // This is roughly a copy of what stdio_udb does.
+  for (uint32_t i = 0; i < count;) {
+    uint32_t remaining = count - i;
+    uint32_t available = tud_cdc_n_write_available(1); 
+    
+    // Clamp the number of bytes to write to what we can
+    // write.
+    if (remaining > available) {
+      remaining = available;
+    }
+
+    // If we have data to write, write it!
+    if (remaining) {
+      uint32_t written = tud_cdc_n_write(1, buf + i, remaining);
+      i += written;
+    }
+
+    tud_task();
+    tud_cdc_write_flush();
+
+    if (!tud_ready()) {
+      break;
+    }
+  }
+}
+
 int main() {
-//  set_sys_clock_khz(48000, true);
+  set_sys_clock_khz(250000, true);
+
+  // tusb setup
+  tud_init(BOARD_TUD_RHPORT);
 
   stdio_init_all();
 
@@ -220,6 +246,10 @@ int main() {
   frame_capture_irq();
   
   while(true) {
+//    printf("Looping! %d",
+//        pio_sm_get_rx_fifo_level(scr.pio.pio, scr.pio.sm));
+    tud_task();
+    cdc_task();
     tight_loop_contents();
   }
 }
