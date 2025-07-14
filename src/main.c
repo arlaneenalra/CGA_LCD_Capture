@@ -50,15 +50,6 @@ void dump_frame(scr_frame_buf_t pixels) {
 }
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
-
-  for (uint i = 0; i < DOT_CLOCK; i++) {
-    gpio_init(i + base_pin);
-//    gpio_disable_pulls(i + base_pin);
-//    gpio_set_input_enabled(i + base_pin, true);
-    //gpio_pull_up(i + base_pin);
-    //gpio_set_input_hysteresis_enabled(i + base_pin, false);
-  }
-
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
     &in_frame_program,
     &(pio_alloc->pio),
@@ -70,7 +61,23 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
   hard_assert(rc);
 
+  for (uint i = 0; i < DOT_CLOCK; i++) {
+    pio_gpio_init(pio_alloc->pio, i + base_pin);
+/*    gpio_set_function(
+        i + base_pin,
+        GPIO_FUNC_NULL
+    );*/
+//    gpio_disable_pulls(i + base_pin);
+//    gpio_set_input_enabled(i + base_pin, true);
+    //gpio_pull_up(i + base_pin);
+    //gpio_set_input_hysteresis_enabled(i + base_pin, false);
+  }
+
+
+
   pio_set_gpio_base(pio_alloc->pio, base_pin);
+
+  pio_sm_config c = in_frame_program_get_default_config(pio_alloc->offset);
 
   pio_sm_set_consecutive_pindirs(
     pio_alloc->pio,
@@ -78,9 +85,9 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
     base_pin,
     IN_FRAME_PINS,
     false);
-  pio_sm_config c = in_frame_program_get_default_config(pio_alloc->offset);
 
   sm_config_set_clkdiv(&c, 1.0f);
+  sm_config_set_in_pins(&c, base_pin);
 
   pio_sm_init(pio_alloc->pio, pio_alloc->sm, pio_alloc->offset, &c); 
 }
