@@ -17,9 +17,12 @@
 #include "lcd.h"
 #include "lcd.pio.h"
 
+#include "vga.h"
+
 #include "libb64/cencode.h"
 
 scr_t scr;
+vga_t vga;
 
 queue_t frame_queue;
 
@@ -47,6 +50,43 @@ void dump_frame(scr_frame_buf_t pixels) {
   frame_write(out, count);
 
   frame_write("\n\r", 2);
+}
+
+void vga_pio_init(vga_t *vga, uint base_pin) {
+  pio_alloc_t *hsync = &(vga->hsync);
+  pio_alloc_t *vsync = &(vga->vsync);
+
+  bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
+    &hsync_program,
+    &(hsync->pio),
+    &(hsync->sm),
+    &(hsync->offset),
+    base_pin + VGA_HSYNC,
+    1,
+    true);
+
+  hard_assert(rc);
+
+  rc = pio_claim_free_sm_and_add_program_for_gpio_range(
+    &vsync_program,
+    &(vsync->pio),
+    &(vsync->sm),
+    &(vsync->offset),
+    base_pin + VGA_VSYNC,
+    1,
+    true);
+
+
+  hard_assert(rc);
+
+  hsync_program_init(hsync->pio, hsync->sm, hsync->offset, (base_pin + VGA_HSYNC));
+  vsync_program_init(vsync->pio, vsync->sm, vsync->offset, (base_pin + VGA_VSYNC));
+
+  pio_sm_put_blocking(hsync->pio, hsync->sm, VGA_HSYNC_ACTIVE);
+  pio_sm_put_blocking(vsync->pio, vsync->sm, VGA_VSYNC_ACTIVE);
+
+  pio_sm_set_enabled(hsync->pio, hsync->sm, true);
+  pio_sm_set_enabled(vsync->pio, vsync->sm, true);
 }
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
@@ -244,6 +284,8 @@ int main() {
 
   in_frame_pio_init(&scr.pio, D0);
   in_frame_dma_init(&scr);
+
+  vga_pio_init(&vga, VGA_BASE_PIN);
 
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
