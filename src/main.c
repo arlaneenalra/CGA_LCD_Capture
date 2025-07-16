@@ -19,42 +19,42 @@
 
 #include "vga.h"
 
-#include "libb64/cencode.h"
 
 scr_t scr;
 vga_t vga;
 
 queue_t frame_queue;
 
-const char MARKER[] = "\033[0;0H\e[?25l";
 void dump_frame(scr_frame_buf_t pixels) {
-  uint32_t count;
-  char out[22000];
-  char *c = out;
-  
-  base64_encodestate s;
+  vga_frame_buf_t *scr = &(vga.scr);
 
+  uint32_t vga_index = 0;
+  uint32_t source = 0;
+  uint32_t dest = 0;
 
-  base64_init_encodestate(&s);
+  for (int i = 0; i < SCR_DMA_TRANSFERS; i++) {
+    source = pixels[i];
+    dest = 0;
+    for (int j=0; j < 32; j++) {
+      dest = dest << 4;
+      if (source & 1 > 0) {
+        dest = dest + 0xF; 
+      }
+      source = source >> 1;
 
-  count = base64_encode_block(
-      (char *)pixels,
-      SCR_PIXELS / 8,
-      c,
-      &s);
-  c += count;
-  count += base64_encode_blockend(c, &s);
+      if (j % 4 == 0) {
+        vga_index++;
+      }
 
-
-  frame_write(MARKER, sizeof(MARKER));
-  frame_write(out, count);
-
-  frame_write("\n\r", 2);
+      (*scr)[vga_index] = dest;
+    }
+  }
 }
 
 void vga_pio_init(vga_t *vga, uint base_pin) {
   pio_alloc_t *hsync = &(vga->hsync);
   pio_alloc_t *vsync = &(vga->vsync);
+  pio_alloc_t *rgb = &(vga->rgb);
 
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
     &hsync_program,
@@ -76,18 +76,70 @@ void vga_pio_init(vga_t *vga, uint base_pin) {
     1,
     true);
 
+  hard_assert(rc);
+
+  rc = pio_claim_free_sm_and_add_program_for_gpio_range(
+    &rgb_program,
+    &(rgb->pio),
+    &(rgb->sm),
+    &(rgb->offset),
+    base_pin + VGA_LO_GREEN,
+    4,
+    true);
 
   hard_assert(rc);
 
   hsync_program_init(hsync->pio, hsync->sm, hsync->offset, (base_pin + VGA_HSYNC));
   vsync_program_init(vsync->pio, vsync->sm, vsync->offset, (base_pin + VGA_VSYNC));
+  rgb_program_init(rgb->pio, rgb->sm, rgb->offset, (base_pin + VGA_LO_GREEN));
 
   pio_sm_put_blocking(hsync->pio, hsync->sm, VGA_HSYNC_ACTIVE);
   pio_sm_put_blocking(vsync->pio, vsync->sm, VGA_VSYNC_ACTIVE);
+  pio_sm_put_blocking(rgb->pio, rgb->sm, VGA_RGB_ACTIVE);
 
   pio_sm_set_enabled(hsync->pio, hsync->sm, true);
   pio_sm_set_enabled(vsync->pio, vsync->sm, true);
+  pio_sm_set_enabled(rgb->pio, rgb->sm, true);
 }
+
+void vga_dma_init(vga_t *vga) {
+  dma_alloc_t *dma = &(vga->dma);
+  pio_alloc_t *rgb = &(vga->rgb);
+
+  // Do basic setup.
+  dma->channel = dma_claim_unused_channel(true);
+  dma->config = dma_channel_get_default_config(dma->channel);
+  
+  channel_config_set_transfer_data_size(&(dma->config), DMA_SIZE_32);
+  channel_config_set_read_increment(&(dma->config), true);
+  channel_config_set_write_increment(&(dma->config), false);
+  channel_config_set_dreq(
+      &(dma->config),
+      PIO_DREQ_NUM(rgb->pio, rgb->sm, true)
+  );
+
+  dma_channel_configure(
+      dma->channel,
+      &(dma->config),
+      &(rgb->pio->txf[rgb->sm]),
+      &(vga->scr),
+      VGA_DMA_TRANSFERS,
+      true);
+
+  dma_channel_set_irq1_enabled(dma->channel, true);
+  irq_set_exclusive_handler(DMA_IRQ_1, vga_dma_irq);
+  irq_set_enabled(DMA_IRQ_1, true);
+}
+
+void vga_dma_irq() {
+  // Acknowledge the IRQ
+  dma_channel_acknowledge_irq1(vga.dma.channel); 
+  dma_channel_set_read_addr(
+      vga.dma.channel,
+      &(vga.scr),
+      true);
+}
+
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
@@ -239,6 +291,7 @@ void cdc_task() {
   }
 }
 
+
 // Write data to the the high speed serial port.
 // Warning! Not thread safe!
 void __not_in_flash_func(frame_write)(const char buf[], uint32_t count) {
@@ -274,8 +327,13 @@ void __not_in_flash_func(frame_write)(const char buf[], uint32_t count) {
   }
 }
 
+
 int main() {
   set_sys_clock_khz(250000, true);
+
+  for(int i=0; i<32000; i++) {
+    vga.scr[i] = 0xFFFFFFFF;
+  }
 
   // tusb setup
   tud_init(BOARD_TUD_RHPORT);
@@ -286,6 +344,7 @@ int main() {
   in_frame_dma_init(&scr);
 
   vga_pio_init(&vga, VGA_BASE_PIN);
+  vga_dma_init(&vga);
 
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
@@ -293,10 +352,9 @@ int main() {
 
   // Start capturing frames
   frame_capture_irq();
+  vga_dma_irq();
   
   while(true) {
-//    printf("Looping! %d",
-//        pio_sm_get_rx_fifo_level(scr.pio.pio, scr.pio.sm));
     tud_task();
     cdc_task();
     tight_loop_contents();
