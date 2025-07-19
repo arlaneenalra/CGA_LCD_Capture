@@ -24,43 +24,44 @@ pull block                        ; Pull from FIFO to OSR (only once)
     mov x, osr                    ; Copy value from OSR to x scratch register
     set pins, 1
 
+    wait 1 gpio VGA_HSYNC_WATCH [5] 
+
 activefront:
-    wait 0 gpio VGA_HSYNC_WATCH   ; Wait for hsync to go high
-    wait 1 gpio VGA_HSYNC_WATCH   ; Wait for hsync to go high
+    wait 0 gpio VGA_HSYNC_WATCH [5]  ; Wait for hsync to go high
+    wait 1 gpio VGA_HSYNC_WATCH [5]  ; Wait for hsync to go high
     jmp x-- activefront           ; Remain in active mode, decrementing counter
 
 ; FRONTPORCH
     set y, 12                     ;
 frontporch:
-    wait 0 gpio VGA_HSYNC_WATCH   ;
-    wait 1 gpio VGA_HSYNC_WATCH   ;
+    wait 0 gpio VGA_HSYNC_WATCH [5]  ;
+    wait 1 gpio VGA_HSYNC_WATCH [5]  ;
     jmp y-- frontporch            ;
 
 ; SYNC PULSE
     set pins, 0                   ; Set pin low
 
-    wait 0 gpio VGA_HSYNC_WATCH   ; Wait for one line
-    wait 1 gpio VGA_HSYNC_WATCH   ;
+    wait 0 gpio VGA_HSYNC_WATCH  [5]  ; Wait for one line
+    wait 1 gpio VGA_HSYNC_WATCH  [5] ;
     
-    wait 0 gpio VGA_HSYNC_WATCH   ; Wait for one line
-    wait 1 gpio VGA_HSYNC_WATCH   ;
+    wait 0 gpio VGA_HSYNC_WATCH  [5] ; Wait for one line
+    wait 1 gpio VGA_HSYNC_WATCH  [5] ;
 
     ; Start the back porch
-    wait 0 gpio VGA_HSYNC_WATCH side 1  ; Wait for hsync to go low
-    wait 1 gpio VGA_HSYNC_WATCH   ; Wait for hsync to go high - SIDESET REPLACEMENT HERE
+    wait 0 gpio VGA_HSYNC_WATCH [5] side 1  ; Wait for hsync to go low
+    wait 1 gpio VGA_HSYNC_WATCH [5]  ; Wait for hsync to go high - SIDESET REPLACEMENT HERE
 
 ; BACKPORCH
     set y, 17                     ; First part of back porch into y scratch register (and delays a cycle)
 backporch:
     ; Wait for two scanlines
-    wait 0 gpio VGA_HSYNC_WATCH   ; 
-    wait 1 gpio VGA_HSYNC_WATCH   ;
+    wait 0 gpio VGA_HSYNC_WATCH [5]  ; 
+    wait 1 gpio VGA_HSYNC_WATCH [5]  ;
 
-    wait 0 gpio VGA_HSYNC_WATCH   ; 
-    wait 1 gpio VGA_HSYNC_WATCH   ; 
+    wait 0 gpio VGA_HSYNC_WATCH [5]  ; 
+    wait 1 gpio VGA_HSYNC_WATCH [5]  ; 
 
     jmp y-- backporch             ; Remain in backporch, decrementing counter
-
 .wrap                             ; Program wraps from here
 
 
@@ -80,7 +81,7 @@ static inline void vsync_program_init(PIO pio, uint sm, uint offset, uint pin) {
     sm_config_set_sideset_pins(&c, pin);
 
     // Set clock division (div by 5 for 25 MHz state machine)
-    sm_config_set_clkdiv(&c, 10) ;
+    sm_config_set_clkdiv(&c, 2) ;
 
     // Set this pin's GPIO function (connect PIO to the pad)
     pio_gpio_init(pio, pin);

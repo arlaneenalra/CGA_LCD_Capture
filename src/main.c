@@ -23,11 +23,11 @@
 scr_t scr;
 vga_t vga;
 
+uint32_t zero_line[VGA_RGB_ACTIVE];
+
 queue_t frame_queue;
 
 void dump_frame(scr_frame_buf_t pixels) {
-  vga_frame_buf_t *scr = &(vga.scr);
-
   uint32_t vga_index = 0;
   uint32_t source = 0;
   uint32_t dest = 0;
@@ -36,17 +36,18 @@ void dump_frame(scr_frame_buf_t pixels) {
     source = pixels[i];
     dest = 0;
     for (int j=0; j < 32; j++) {
-      dest = dest << 4;
+      dest = dest >> 4;
       if (source & 1 > 0) {
-        dest = dest + 0xF; 
+        dest = dest + 0xF0000000; 
       }
       source = source >> 1;
 
-      if (j % 4 == 0) {
-        vga_index++;
-      }
+      vga.scr[vga_index] = dest;
 
-      (*scr)[vga_index] = dest;
+      if (j % 8 == 3) {
+        vga_index++;
+        dest = 0;
+      }
     }
   }
 }
@@ -95,7 +96,9 @@ void vga_pio_init(vga_t *vga, uint base_pin) {
 
   pio_sm_put_blocking(hsync->pio, hsync->sm, VGA_HSYNC_ACTIVE);
   pio_sm_put_blocking(vsync->pio, vsync->sm, VGA_VSYNC_ACTIVE);
-  pio_sm_put_blocking(rgb->pio, rgb->sm, VGA_RGB_ACTIVE);
+
+//  pio_sm_put_blocking(rgb->pio, rgb->sm, 41);
+  pio_sm_put_blocking(rgb->pio, rgb->sm, VGA_RGB_ACTIVE * 2);
 
   pio_sm_set_enabled(hsync->pio, hsync->sm, true);
   pio_sm_set_enabled(vsync->pio, vsync->sm, true);
@@ -105,6 +108,8 @@ void vga_pio_init(vga_t *vga, uint base_pin) {
 void vga_dma_init(vga_t *vga) {
   dma_alloc_t *dma = &(vga->dma);
   pio_alloc_t *rgb = &(vga->rgb);
+
+  vga->line = 0;
 
   // Do basic setup.
   dma->channel = dma_claim_unused_channel(true);
@@ -118,13 +123,16 @@ void vga_dma_init(vga_t *vga) {
       PIO_DREQ_NUM(rgb->pio, rgb->sm, true)
   );
 
+  //vga->line_ptr = VGA_LINE_ADDR(*vga, 0); 
+  vga->line_ptr = zero_line; 
+
   dma_channel_configure(
       dma->channel,
       &(dma->config),
       &(rgb->pio->txf[rgb->sm]),
-      &(vga->scr),
+      vga->line_ptr,
       VGA_DMA_TRANSFERS,
-      true);
+      false);
 
   dma_channel_set_irq1_enabled(dma->channel, true);
   irq_set_exclusive_handler(DMA_IRQ_1, vga_dma_irq);
@@ -133,11 +141,42 @@ void vga_dma_init(vga_t *vga) {
 
 void vga_dma_irq() {
   // Acknowledge the IRQ
-  dma_channel_acknowledge_irq1(vga.dma.channel); 
+  dma_channel_acknowledge_irq1(vga.dma.channel);
+
+  vga.line = (vga.line + 1);
+  if (vga.line == VGA_FRAME_LINES) {
+
+    pio_sm_set_enabled(vga.rgb.pio, vga.rgb.sm, false);
+
+    vga.line = 0;
+    vga.line_ptr = zero_line;
+
+    // Reset the RGB PIO
+    pio_sm_restart(vga.rgb.pio, vga.rgb.sm);
+    pio_sm_clear_fifos(vga.rgb.pio, vga.rgb.sm);
+    pio_sm_exec(vga.rgb.pio, vga.rgb.sm, pio_encode_jmp(vga.rgb.offset));
+
+//    pio_sm_put_blocking(vga.rgb.pio, vga.rgb.sm, 41);
+    pio_sm_put_blocking(vga.rgb.pio, vga.rgb.sm, VGA_RGB_ACTIVE * 2);
+    pio_sm_set_enabled(vga.rgb.pio, vga.rgb.sm, true);
+  }
+
   dma_channel_set_read_addr(
       vga.dma.channel,
-      &(vga.scr),
+      vga.line_ptr,
       true);
+
+/*  vga.line = (vga.line + 1);
+  if (vga.line % VGA_FRAME_LINES == 0) {
+    vga.line = 0;
+
+  }*/
+
+  if (vga.line <= VGA_VSYNC_BACKPORCH || vga.line > VGA_FRAME_LINES) {
+    vga.line_ptr = zero_line;
+  } else {
+    vga.line_ptr = VGA_LINE_ADDR(vga, VGA_VSYNC_BACKPORCH);
+  }    
 }
 
 
@@ -267,14 +306,14 @@ static inline void frame_capture() {
     dump_frame(scr.pixels[frame.frame]);
     end = get_absolute_time();
 
-    printf(
+/*    printf(
       "Frame: %d Dropped: %d Capture Time: %" PRIu64 "us Frame Time: %" PRIu64 "us Display Time %" PRIu64"us\n" ,
       frame.frame,
       frame.dropped,
       absolute_time_diff_us(frame.start, frame.end),
       absolute_time_diff_us(last_start, frame.start),
       absolute_time_diff_us(start, end)
-    );
+    );*/
 
     last_start = frame.start;
   }
@@ -327,36 +366,62 @@ void __not_in_flash_func(frame_write)(const char buf[], uint32_t count) {
   }
 }
 
+void ldo_pwm_mode() {
+  gpio_init(LDO_GPIO);
+  gpio_set_dir(LDO_GPIO, GPIO_OUT);
+  gpio_put(LDO_GPIO, true);
+}
+
+static inline void vga_core() {
+  vga_pio_init(&vga, VGA_BASE_PIN);
+  vga_dma_init(&vga);
+  vga_dma_irq();
+
+  while(true) {
+    tight_loop_contents();
+  }
+}
 
 int main() {
+  ldo_pwm_mode();
+
   set_sys_clock_khz(250000, true);
 
-  for(int i=0; i<32000; i++) {
-    vga.scr[i] = 0xFFFFFFFF;
+  for (int i = 0; i < VGA_RGB_ACTIVE; i++) {
+    zero_line[i] = 0x0;
   }
 
+  for(int i=0; i<32000; i++) {
+    vga.scr[i] = 0xF0F0F0F0;
+//    vga.scr[i] = 0xFFFF0000;
+  }
+
+for(int i=0; i < 80; i ++) {
+  vga.scr[i] = 0xFFFFFFFF;
+  vga.scr[i + (399 * 80)] = 0xFFFFFFFF;
+}
+
   // tusb setup
-  tud_init(BOARD_TUD_RHPORT);
+//  tud_init(BOARD_TUD_RHPORT);
 
   stdio_init_all();
 
   in_frame_pio_init(&scr.pio, D0);
   in_frame_dma_init(&scr);
 
-  vga_pio_init(&vga, VGA_BASE_PIN);
-  vga_dma_init(&vga);
-
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
-  multicore_launch_core1(frame_capture);
+//  multicore_launch_core1(frame_capture);
+  multicore_launch_core1(vga_core);
 
   // Start capturing frames
   frame_capture_irq();
-  vga_dma_irq();
+ 
   
+  frame_capture();
   while(true) {
-    tud_task();
-    cdc_task();
+    //tud_task();
+    //cdc_task();
     tight_loop_contents();
   }
 }

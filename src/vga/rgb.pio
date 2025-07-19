@@ -4,7 +4,6 @@
 ; mod by Bruce Land for 16 colors
 ; https://github.com/vha3/Hunter-Adams-RP2040-Demos/blob/master/VGA_Graphics/VGA_Graphics_Primitives/rgb.pio
 
-
 ; Program name
 .program rgb
 
@@ -12,27 +11,46 @@
 .define PUBLIC VGA_VSYNC_WATCH 17
 
 .fifo tx
+.out 32 left auto 32 
 
-   pull block 					; Pull from FIFO to OSR (only once)
-   mov y, osr 					; Copy value from OSR to y scratch register
-.wrap_target
 
    set pins, 0 				; Zero RGB pins in blanking
+   pull block    			; Pull from FIFO to OSR (only once)
+
+   mov y, osr 				; Copy value from OSR to y scratch register
+   
+   wait 0 gpio VGA_VSYNC_WATCH [17]
+   wait 1 gpio VGA_VSYNC_WATCH [17]
+
+.wrap_target
+
+   wait 0 gpio VGA_HSYNC_WATCH [31]
+   wait 1 gpio VGA_HSYNC_WATCH [31] 
+
+   set x, 3 
+backporch:
+   set pins, 0  [31]  ;  62 - Front porch
+   jmp x-- backporch
+
+;   set pins, 0  [22]  ;  217 - Front porch
+
    mov x, y 					; Initialize counter variable
 
-   wait 0 gpio VGA_HSYNC_WATCH
-   wait 1 gpio VGA_HSYNC_WATCH [3] 	; Wait for vsync active mode (starts 5 cycles after execution)
-
 colorout:
-	pull block				; Pull color value
+  out pins, 4	[4]			; Push out to pins (next pixel)
 	out pins, 4	[4]			; Push out to pins (next pixel)
-	out pins, 4	[2]			; Push out to pins (next pixel)
+
+	out pins, 4	[4]			; Push out to pins (next pixel)
+	out pins, 4	[3]			; Push out to pins (next pixel)
 	jmp x-- colorout		; Stay here thru horizontal active mode
 
+  set pins, 0
+  
 .wrap
 
 
 % c-sdk {
+
 static inline void rgb_program_init(PIO pio, uint sm, uint offset, uint pin) {
 
     // creates state machine configuration object c, sets
@@ -50,11 +68,11 @@ static inline void rgb_program_init(PIO pio, uint sm, uint offset, uint pin) {
     sm_config_set_clkdiv(&c, 2) ;
 
     // Set this pin's GPIO function (connect PIO to the pad)
-    pio_gpio_init(pio, pin);
-    pio_gpio_init(pio, pin+1);
-    pio_gpio_init(pio, pin+2);
-    pio_gpio_init(pio, pin+3);
-    
+    for (int i = 0; i < 4; i++) {
+      pio_gpio_init(pio, pin + i);
+      gpio_set_slew_rate(pin + i, GPIO_SLEW_RATE_FAST);
+    }
+
     // Set the pin direction to output at the PIO (3 pins)
     pio_sm_set_consecutive_pindirs(pio, sm, pin, 4, true);
 
