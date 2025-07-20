@@ -27,12 +27,13 @@
    wait 0 gpio VGA_HSYNC_WATCH [31]
    wait 1 gpio VGA_HSYNC_WATCH [31] 
 
-   set x, 3 
-backporch:
-   set pins, 0  [31]  ;  62 - Front porch
-   jmp x-- backporch
+;   set x, 3 
+;backporch:
+;   set pins, 0  [31]  ;  62 - Front porch
+;   jmp x-- backporch
 
-;   set pins, 0  [22]  ;  217 - Front porch
+   set pins, 0  [31]  ;  Front porch
+   set pins, 0  [15]  ;  Front porch
 
    mov x, y 					; Initialize counter variable
 

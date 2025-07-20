@@ -94,7 +94,7 @@ void vga_pio_init(vga_t *vga, uint base_pin) {
   vsync_program_init(vsync->pio, vsync->sm, vsync->offset, (base_pin + VGA_VSYNC));
   rgb_program_init(rgb->pio, rgb->sm, rgb->offset, (base_pin + VGA_LO_GREEN));
 
-  pio_sm_put_blocking(hsync->pio, hsync->sm, VGA_HSYNC_ACTIVE);
+  pio_sm_put_blocking(hsync->pio, hsync->sm, VGA_HSYNC_ACTIVE + VGA_HSYNC_FRONTPORCH);
   pio_sm_put_blocking(vsync->pio, vsync->sm, VGA_VSYNC_ACTIVE);
 
 //  pio_sm_put_blocking(rgb->pio, rgb->sm, 41);

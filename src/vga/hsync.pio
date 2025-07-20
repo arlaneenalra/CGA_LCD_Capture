@@ -33,7 +33,7 @@ activeporch:
 pulse:
     set pins, 0 [31]    ; Low for hsync pulse (32 cycles)
     set pins, 0 [31]    ; Low for hsync pulse (64 cycles)
-    set pins, 0 [31]    ; Low for hsync pulse (96 cycles)
+    set pins, 0 [28]    ; Low for hsync pulse (96 cycles)
 
 ; BACKPORCH
 backporch:

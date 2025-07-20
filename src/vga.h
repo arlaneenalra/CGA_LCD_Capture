@@ -13,6 +13,7 @@ void ldo_pwm_mode();
 #define VGA_RED (VGA_HSYNC + 5)
 
 #define VGA_HSYNC_ACTIVE 640
+#define VGA_HSYNC_FRONTPORCH 16
 
 #define VGA_VSYNC_ACTIVE 400
 #define VGA_VSYNC_BACKPORCH 20 

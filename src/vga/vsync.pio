@@ -6,7 +6,7 @@
 
 ; Program name
 .program vsync
-.side_set 1 opt
+;.side_set 1 opt
 
 ; frontporch: 12  lines
 ; sync pulse: 2   lines
@@ -48,8 +48,12 @@ frontporch:
     wait 1 gpio VGA_HSYNC_WATCH  [5] ;
 
     ; Start the back porch
-    wait 0 gpio VGA_HSYNC_WATCH [5] side 1  ; Wait for hsync to go low
-    wait 1 gpio VGA_HSYNC_WATCH [5]  ; Wait for hsync to go high - SIDESET REPLACEMENT HERE
+    ;wait 0 gpio VGA_HSYNC_WATCH [5] ;side 1  ; Wait for hsync to go low
+    ;wait 1 gpio VGA_HSYNC_WATCH [5]  ; Wait for hsync to go high - SIDESET REPLACEMENT HERE
+
+    nop [31]
+    nop [31]
+    set pins, 1
 
 ; BACKPORCH
     set y, 17                     ; First part of back porch into y scratch register (and delays a cycle)
@@ -78,10 +82,10 @@ static inline void vsync_program_init(PIO pio, uint sm, uint offset, uint pin) {
     // Map the state machine's SET pin group to one pin, namely the `pin`
     // parameter to this function.
     sm_config_set_set_pins(&c, pin, 1);
-    sm_config_set_sideset_pins(&c, pin);
+//    sm_config_set_sideset_pins(&c, pin);
 
     // Set clock division (div by 5 for 25 MHz state machine)
-    sm_config_set_clkdiv(&c, 2) ;
+    sm_config_set_clkdiv(&c, 5) ;
 
     // Set this pin's GPIO function (connect PIO to the pad)
     pio_gpio_init(pio, pin);
