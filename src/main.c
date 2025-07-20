@@ -110,6 +110,9 @@ void vga_dma_init(vga_t *vga) {
   pio_alloc_t *rgb = &(vga->rgb);
 
   vga->line = 0;
+  //vga->line_ptr = VGA_LINE_ADDR(*vga, 0); 
+  vga->line_ptr = zero_line; 
+
 
   // Do basic setup.
   dma->channel = dma_claim_unused_channel(true);
@@ -122,9 +125,6 @@ void vga_dma_init(vga_t *vga) {
       &(dma->config),
       PIO_DREQ_NUM(rgb->pio, rgb->sm, true)
   );
-
-  //vga->line_ptr = VGA_LINE_ADDR(*vga, 0); 
-  vga->line_ptr = zero_line; 
 
   dma_channel_configure(
       dma->channel,
@@ -154,9 +154,9 @@ void vga_dma_irq() {
     // Reset the RGB PIO
     pio_sm_restart(vga.rgb.pio, vga.rgb.sm);
     pio_sm_clear_fifos(vga.rgb.pio, vga.rgb.sm);
+    pio_sm_restart(vga.rgb.pio, vga.rgb.sm);
     pio_sm_exec(vga.rgb.pio, vga.rgb.sm, pio_encode_jmp(vga.rgb.offset));
 
-//    pio_sm_put_blocking(vga.rgb.pio, vga.rgb.sm, 41);
     pio_sm_put_blocking(vga.rgb.pio, vga.rgb.sm, VGA_RGB_ACTIVE * 2);
     pio_sm_set_enabled(vga.rgb.pio, vga.rgb.sm, true);
   }
@@ -172,7 +172,7 @@ void vga_dma_irq() {
 
   }*/
 
-  if (vga.line <= VGA_VSYNC_BACKPORCH || vga.line > VGA_FRAME_LINES) {
+  if (vga.line <= VGA_VSYNC_BACKPORCH || vga.line > VGA_VIDEO_LINES) {
     vga.line_ptr = zero_line;
   } else {
     vga.line_ptr = VGA_LINE_ADDR(vga, VGA_VSYNC_BACKPORCH);
@@ -418,7 +418,7 @@ for(int i=0; i < 80; i ++) {
   frame_capture_irq();
  
   
-  frame_capture();
+//  frame_capture();
   while(true) {
     //tud_task();
     //cdc_task();

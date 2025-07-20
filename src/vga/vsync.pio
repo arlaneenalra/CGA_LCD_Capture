@@ -2,7 +2,7 @@
 ; Hunter Adams (vha3@cornell.edu)
 ; VSync generation for VGA driver
 ; https://github.com/vha3/Hunter-Adams-RP2040-Demos/blob/master/VGA_Graphics/VGA_Graphics_Primitives/vsync.pio
-; http://www.tinyvga.com/vga-timing/640x400@70Hz
+; http://www.tinyvga.com/vga-timing/640x400@70Hz - Ugh my monitors do 720x400 .. not 640x400
 
 ; Program name
 .program vsync
@@ -22,7 +22,7 @@ pull block                        ; Pull from FIFO to OSR (only once)
 
 ; ACTIVE
     mov x, osr                    ; Copy value from OSR to x scratch register
-    set pins, 1
+    set pins, 1 
 
     wait 1 gpio VGA_HSYNC_WATCH [5] 
 
@@ -32,13 +32,15 @@ activefront:
     jmp x-- activefront           ; Remain in active mode, decrementing counter
 
 ; FRONTPORCH
-    set y, 12                     ;
+;    set y, 12                     ;
+  set y, 10
 frontporch:
     wait 0 gpio VGA_HSYNC_WATCH [5]  ;
     wait 1 gpio VGA_HSYNC_WATCH [5]  ;
     jmp y-- frontporch            ;
 
 ; SYNC PULSE
+    nop [31]
     set pins, 0                   ; Set pin low
 
     wait 0 gpio VGA_HSYNC_WATCH  [5]  ; Wait for one line
@@ -53,10 +55,11 @@ frontporch:
 
     nop [31]
     nop [31]
-    set pins, 1
+    
+    set pins, 1 
 
 ; BACKPORCH
-    set y, 17                     ; First part of back porch into y scratch register (and delays a cycle)
+    set y, 16                     ; First part of back porch into y scratch register (and delays a cycle)
 backporch:
     ; Wait for two scanlines
     wait 0 gpio VGA_HSYNC_WATCH [5]  ; 
@@ -66,6 +69,9 @@ backporch:
     wait 1 gpio VGA_HSYNC_WATCH [5]  ; 
 
     jmp y-- backporch             ; Remain in backporch, decrementing counter
+
+    wait 0 gpio VGA_HSYNC_WATCH [5]  ; 
+    wait 1 gpio VGA_HSYNC_WATCH [5]  ; 
 .wrap                             ; Program wraps from here
 
 
@@ -85,7 +91,7 @@ static inline void vsync_program_init(PIO pio, uint sm, uint offset, uint pin) {
 //    sm_config_set_sideset_pins(&c, pin);
 
     // Set clock division (div by 5 for 25 MHz state machine)
-    sm_config_set_clkdiv(&c, 5) ;
+    sm_config_set_clkdiv(&c, 4) ;
 
     // Set this pin's GPIO function (connect PIO to the pad)
     pio_gpio_init(pio, pin);
