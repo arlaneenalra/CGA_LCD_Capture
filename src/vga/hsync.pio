@@ -25,6 +25,7 @@ set pins, 1             ; Bring output high
 .wrap_target            ; Program wraps to here
 
 ; ACTIVE + FRONTPORCH
+
   mov x, osr              ; Copy value from OSR to x scratch register
 activeporch:
    nop

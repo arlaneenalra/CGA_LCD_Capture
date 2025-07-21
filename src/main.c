@@ -17,18 +17,26 @@
 #include "lcd.h"
 #include "lcd.pio.h"
 
-#include "vga.h"
+//#include "vga.h"
+
+#include "pwm/vga.h"
+
+#define LDO_GPIO 23
+
+void ldo_pwm_mode();
 
 
 scr_t scr;
-vga_t vga;
+//vga_t vga;
 
-uint32_t zero_line[VGA_RGB_ACTIVE];
+vga_pwm_t vga_pwm;
+
+//uint32_t zero_line[VGA_RGB_ACTIVE];
 
 queue_t frame_queue;
 
 void dump_frame(scr_frame_buf_t pixels) {
-  uint32_t vga_index = 0;
+/*  uint32_t vga_index = 0;
   uint32_t source = 0;
   uint32_t dest = 0;
 
@@ -49,9 +57,9 @@ void dump_frame(scr_frame_buf_t pixels) {
         dest = 0;
       }
     }
-  }
+  }*/
 }
-
+/*
 void vga_pio_init(vga_t *vga, uint base_pin) {
   pio_alloc_t *hsync = &(vga->hsync);
   pio_alloc_t *vsync = &(vga->vsync);
@@ -166,19 +174,13 @@ void vga_dma_irq() {
       vga.line_ptr,
       true);
 
-/*  vga.line = (vga.line + 1);
-  if (vga.line % VGA_FRAME_LINES == 0) {
-    vga.line = 0;
-
-  }*/
-
   if (vga.line <= VGA_VSYNC_BACKPORCH || vga.line > VGA_VIDEO_LINES) {
     vga.line_ptr = zero_line;
   } else {
     vga.line_ptr = VGA_LINE_ADDR(vga, VGA_VSYNC_BACKPORCH);
   }    
 }
-
+*/
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
@@ -372,7 +374,7 @@ void ldo_pwm_mode() {
   gpio_put(LDO_GPIO, true);
 }
 
-static inline void vga_core() {
+/*static inline void vga_core() {
   vga_pio_init(&vga, VGA_BASE_PIN);
   vga_dma_init(&vga);
   vga_dma_irq();
@@ -380,14 +382,14 @@ static inline void vga_core() {
   while(true) {
     tight_loop_contents();
   }
-}
+}*/
 
 int main() {
   ldo_pwm_mode();
 
   set_sys_clock_khz(250000, true);
 
-  for (int i = 0; i < VGA_RGB_ACTIVE; i++) {
+/*  for (int i = 0; i < VGA_RGB_ACTIVE; i++) {
     zero_line[i] = 0x0;
   }
 
@@ -400,7 +402,7 @@ for(int i=0; i < 80; i ++) {
   vga.scr[i] = 0xFFFFFFFF;
   vga.scr[i + (399 * 80)] = 0xFFFFFFFF;
 }
-
+*/
   // tusb setup
 //  tud_init(BOARD_TUD_RHPORT);
 
@@ -409,14 +411,21 @@ for(int i=0; i < 80; i ++) {
   in_frame_pio_init(&scr.pio, D0);
   in_frame_dma_init(&scr);
 
+  vga_pwm_init(
+      &vga_pwm,
+      //&(vga_mode_list[MODE_640X480_60]),
+      &(vga_mode_list[MODE_1280X800_60]),
+      VGA_HSYNC, 
+      VGA_VSYNC,
+      true);
+
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
 //  multicore_launch_core1(frame_capture);
-  multicore_launch_core1(vga_core);
+//  multicore_launch_core1(vga_core);
 
   // Start capturing frames
   frame_capture_irq();
- 
   
 //  frame_capture();
   while(true) {

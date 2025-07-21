@@ -1,8 +1,5 @@
 #pragma once
 
-#define LDO_GPIO 23
-
-void ldo_pwm_mode();
 
 #define VGA_BASE_PIN 16
 #define VGA_HSYNC 0 
@@ -32,7 +29,6 @@ void ldo_pwm_mode();
 
 #define VGA_RGB_ACTIVE 80 
 
-//#define VGA_LINE_ADDR(vga) (uint32_t *)(&((vga)->scr) + (((vga)->line >> 1) * VGA_DMA_TRANSFERS))
 #define VGA_LINE_ADDR(vga, offset) (&((vga).scr[((vga).line - offset) * VGA_DMA_TRANSFERS]))
 
 typedef uint32_t vga_frame_buf_t[VGA_FRAME_BUF_SIZE];

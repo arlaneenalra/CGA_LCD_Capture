@@ -1,7 +1,9 @@
+
+add_subdirectory(pwm)
+
 add_executable(lcd_reader
   main.c
   usb_descriptors.c
-  #libb64/cencode.c
 )
 
 # Make sure TinyUSB can find tusb_config.h
@@ -24,9 +26,15 @@ target_link_libraries(lcd_reader
   pico_stdlib
   pico_time
   pico_multicore
+
   hardware_pio
   hardware_dma
   hardware_irq
+  
+  hardware_pwm
+
   tinyusb_device
   tinyusb_board
+
+  vga_pwm
 )
