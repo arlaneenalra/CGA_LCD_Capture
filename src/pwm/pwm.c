@@ -5,33 +5,30 @@
 #include "hardware/pwm.h"
 
 static inline uint16_t vga_sync_total(vga_sync_t *sync);
-static inline uint32_t vga_get_enable_mask(vga_pwm_t *vga);
-
+static inline uint32_t vga_get_enable_mask();
 
 void vga_pwm_init(
-    vga_pwm_t *vga,
-    vga_mode_t *vga_mode,
     uint8_t hsync_pin,
     uint8_t vsync_pin) {
 
   // Setup the sync signals 
-  vga->hsync_slice = vga_hsync_pwm(
-      &(vga_mode->h), hsync_pin, vga_mode->pixel_clk);
-  vga->vsync_slice = vga_vsync_pwm(&(vga_mode->v), vsync_pin);
+  vga.hsync_slice = vga_hsync_pwm(
+      &(vga.mode->h), hsync_pin, vga.mode->pixel_clk);
+  vga.vsync_slice = vga_vsync_pwm(&(vga.mode->v), vsync_pin);
 }
 
 
-void vga_pwm_enable(vga_pwm_t *vga) {
+void vga_pwm_enable() {
     pwm_set_mask_enabled(
-        vga_get_enable_mask(vga));
+        vga_get_enable_mask());
 }
 
 uint16_t static inline vga_sync_total(vga_sync_t *sync) {
   return (sync->front_porch + sync->pulse + sync->back_porch + sync->visible);
 }
 
-uint32_t static inline vga_get_enable_mask(vga_pwm_t *vga) {
-  return (1 << vga->hsync_slice) | (1 << vga->vsync_slice);
+uint32_t static inline vga_get_enable_mask() {
+  return (1 << vga.hsync_slice) | (1 << vga.vsync_slice);
 }
 
 uint8_t vga_hsync_pwm(

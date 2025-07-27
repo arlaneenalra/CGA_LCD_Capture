@@ -31,3 +31,4 @@ void vga_pio_init(
 void vga_pio_enable(rgb_pio_t *pio) {
   pio_sm_set_enabled(pio->pio, pio->sm, true);
 }
+

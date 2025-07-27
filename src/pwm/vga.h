@@ -2,7 +2,6 @@
 
 #include <inttypes.h>
 #include <stdbool.h>
-#include "hardware/pio.h"
 
 /* We use PWM for H and V sync, with the V sync clocked off
  * the H sync.
@@ -56,59 +55,16 @@ typedef struct vga_mode_type {
 
 } vga_mode_t;
 
-typedef struct rgb_pio_type {
-  PIO pio;
-  uint sm;
-  uint offset;
-
-} rgb_pio_t;
-
-typedef struct vga_pwm_type {
-  uint8_t hsync_slice;
-  uint8_t vsync_slice;
-
-  vga_mode_t *mode;
-
-  rgb_pio_t pio;
-  int pixel_dma; 
-
-  uint32_t line;
-
-  uint32_t *frame_buf;
-
-} vga_pwm_t;
-
 void vga_init(
-    vga_pwm_t *vga,
     vga_mode_t *vga_mode,
     uint32_t *frame_buf,
     uint8_t hsync_pin,
     uint8_t vsync_pin,
     uint8_t rgb_pin);
 
-void vga_pwm_init(
-    vga_pwm_t *vga,
-    vga_mode_t *vga_mode,
-    uint8_t hsync_pin,
-    uint8_t vsync_pin);
+void vga_enable();
 
-void vga_pio_init(
-    rgb_pio_t *pio,
-    vga_mode_t *mode,
-    uint8_t vsync_base_pin,
-    uint8_t rgb_base_pin);
-
-void vga_dma_init(vga_pwm_t *vga);
-void vga_dma_irq();
-
-uint8_t vga_hsync_pwm(
-    vga_sync_t *sync, uint8_t hsync_pin, uint32_t pixel_clk);
-uint8_t vga_vsync_pwm(vga_sync_t *sync, uint8_t vsync_pin);
-
-void vga_pwm_enable(vga_pwm_t *vga);
-void vga_pio_enable(rgb_pio_t *pio);
-
-void vga_enable(vga_pwm_t *vga);
+bool vga_dma_is_busy();
 
 extern vga_mode_t vga_mode_list[];
 

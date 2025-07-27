@@ -11,23 +11,16 @@
 .fifo tx
 
 
-.wrap_target
   set pins, 0
 
-  ; Load the number of lines in the vertical back porch
-  ;pull block
-  out x, 32
+.wrap_target
 
-
-  ; Load the number of visible lines.
-  ;pull block
-  out y, 32
-
+  out x, 32 ; Load the number of lines in the vertical back porch
+  out y, 32 ; Load the number of visible lines.
 
   ; Wait for a V Sync to start a new frame
   wait 0 pin VSYNC [5]
   wait 1 pin VSYNC [5]
-
 
 vsync_porch:
 
@@ -37,10 +30,19 @@ vsync_porch:
 
   jmp x-- vsync_porch
 
+  ; Indicate that this is the first line and we should *not*
+  ; dump the vertial info since we've already consumed it.
+  set x, 1
+
 next_line:
- 
+
+  ; Dump the vertical info if we haven't consumed it.
+  jmp x-- no_dump
+  out null, 32
+  out null, 32 
+no_dump:
+
   ; Setup hsync back porch counter
-  ;pull block
   out x, 32 
 
   ; Actually wait for the sync pulse
@@ -52,16 +54,16 @@ hsync_backporch:
   jmp x-- hsync_backporch
 
   ; Setup visible pixels counter
-  ;pull block
   out x, 32
 
 write_pixel:
   ; Write out a pixel
   out pins, 4  [4]
+  set pins, 0
   jmp x-- write_pixel
 
   ; Zero out the video pins, and wait for the next line
-  set pins, 0
+  set pins, 0 
 
   ; jump to the next line 
   jmp y-- next_line

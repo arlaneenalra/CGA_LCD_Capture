@@ -3,6 +3,7 @@ add_library(vga_pwm
   pio.c
   modes.c
   vga.c
+  dma.c
 )
 
 target_include_directories(vga_pwm PUBLIC

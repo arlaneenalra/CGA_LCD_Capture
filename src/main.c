@@ -1,5 +1,3 @@
-//#define PICO_STDIO_USB_TASK_INTERVAL_US 100
-
 #include <stdio.h>
 #include <string.h>
 
@@ -16,8 +14,6 @@
 
 #include "lcd.h"
 #include "lcd.pio.h"
-
-//#include "vga.h"
 
 #include "pwm/vga.h"
 
@@ -37,12 +33,7 @@
 void ldo_pwm_mode();
 
 scr_t scr;
-//vga_t vga;
 vga_frame_buf_t buffer;
-
-vga_pwm_t vga;
-
-//uint32_t zero_line[VGA_RGB_ACTIVE];
 
 queue_t frame_queue;
 
@@ -354,16 +345,17 @@ void ldo_pwm_mode() {
 
 static inline void vga_core() {
   vga_init(
-      &vga,
       &(vga_mode_list[MODE_640X480_60]),
       buffer,
       VGA_HSYNC, 
       VGA_VSYNC,
       VGA_RGB_BASE_PIN);
 
-  vga_enable(&vga);
+  vga_enable();
 
   while(true) {
+    gpio_put(PICO_DEFAULT_LED_PIN, vga_dma_is_busy());
+
     tight_loop_contents();
   }
 }
@@ -371,7 +363,8 @@ static inline void vga_core() {
 int main() {
   ldo_pwm_mode();
 
-  set_sys_clock_khz(250000, true);
+  //set_sys_clock_khz(250000, true);
+  set_sys_clock_khz(200000, true);
 
   gpio_init(PICO_DEFAULT_LED_PIN);
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
@@ -388,19 +381,21 @@ for(int i=0; i < sizeof(buffer)/4 ; i ++) {
 
   stdio_init_all();
 
-  in_frame_pio_init(&scr.pio, D0);
-  in_frame_dma_init(&scr);
+//  in_frame_pio_init(&scr.pio, D0);
+//  in_frame_dma_init(&scr);
 
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
 //  multicore_launch_core1(frame_capture);
-  multicore_launch_core1(vga_core);
+//  multicore_launch_core1(vga_core);
+    vga_core();
 
   // Start capturing frames
-  frame_capture_irq();
+//  frame_capture_irq();
   
 //  frame_capture();
   while(true) {
+
     //tud_task();
     //cdc_task();
     tight_loop_contents();
