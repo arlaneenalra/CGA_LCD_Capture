@@ -15,7 +15,7 @@
 .program in_frame
 
 .fifo rx              // We're only clocking data in. 
-.in 32 left auto 32  // 4 bits, shift left, auto push on 32 bits
+.in 32 left auto 32  // 4 bits, shift left, auto pull on 32 bits
 
 
   ; Wait for the starting sync of a frame.

@@ -21,13 +21,24 @@
 
 #include "pwm/vga.h"
 
+#define VGA_HSYNC 16
+#define VGA_HSYNC_OUT (VGA_HSYNC + 1)
+
+#define VGA_VSYNC 14
+#define VGA_VSYNC_CLK (VGA_HSYNC_OUT)
+
+#define VGA_RGB_BASE_PIN 18
+#define VGA_LO_GREEN (VGA_RGB_BASE_PIN + 0)
+#define VGA_HI_GREEN (VGA_RGB_BASE_PIN + 1)
+#define VGA_BLUE (VGA_RGB_BASE_PIN + 2)
+#define VGA_RED (VGA_RGB_BASE_PIN + 3)
+
 #define LDO_GPIO 23
-
 void ldo_pwm_mode();
-
 
 scr_t scr;
 //vga_t vga;
+vga_frame_buf_t buffer;
 
 vga_pwm_t vga_pwm;
 
@@ -212,6 +223,7 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
   pio_sm_config c = in_frame_program_get_default_config(pio_alloc->offset);
 
+  // TODO : I may need to move this after pio_sm_init ...
   pio_sm_set_consecutive_pindirs(
     pio_alloc->pio,
     pio_alloc->sm,
@@ -374,20 +386,27 @@ void ldo_pwm_mode() {
   gpio_put(LDO_GPIO, true);
 }
 
-/*static inline void vga_core() {
-  vga_pio_init(&vga, VGA_BASE_PIN);
-  vga_dma_init(&vga);
-  vga_dma_irq();
+static inline void vga_core() {
+  vga_pwm_init(
+      &vga_pwm,
+      &(vga_mode_list[MODE_640X480_60]),
+      VGA_HSYNC, 
+      VGA_VSYNC);
+
+  vga_enable(&vga_pwm);
 
   while(true) {
     tight_loop_contents();
   }
-}*/
+}
 
 int main() {
   ldo_pwm_mode();
 
   set_sys_clock_khz(250000, true);
+
+  // zero out our frame buffer
+  memset(buffer, 0xF0, sizeof(buffer));
 
 /*  for (int i = 0; i < VGA_RGB_ACTIVE; i++) {
     zero_line[i] = 0x0;
@@ -411,18 +430,10 @@ for(int i=0; i < 80; i ++) {
   in_frame_pio_init(&scr.pio, D0);
   in_frame_dma_init(&scr);
 
-  vga_pwm_init(
-      &vga_pwm,
-      //&(vga_mode_list[MODE_640X480_60]),
-      &(vga_mode_list[MODE_1280X800_60]),
-      VGA_HSYNC, 
-      VGA_VSYNC,
-      true);
-
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
 //  multicore_launch_core1(frame_capture);
-//  multicore_launch_core1(vga_core);
+  multicore_launch_core1(vga_core);
 
   // Start capturing frames
   frame_capture_irq();

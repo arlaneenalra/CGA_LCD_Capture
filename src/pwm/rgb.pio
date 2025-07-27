@@ -1,0 +1,89 @@
+; 
+;
+;
+
+.define VSYNC 0
+.define HSYNC 1
+
+.program vga_pwm_pio 
+
+.out 4 left auto 32
+.fifo tx
+
+
+.wrap_target
+  set pins, 0
+ 
+  ; Load the number of lines in the vertical back porch
+  pull block
+  mov x, osr
+
+  ; Load the number of visible lines.
+  mov y, osr
+
+
+  ; Wait for a V Sync to start a new frame  
+  wait 0 pin VSYNC [5]
+  wait 1 pin VSYNC [5]
+
+  set pins, 15 
+
+vsync_porch:
+  ; Actually wait for the sync pulse
+  wait 0 pin HSYNC [5]
+  wait 1 pin HSYNC [5]
+
+  jmp x-- vsync_porch
+
+next_line:
+ 
+  ; Setup hsync back porch counter
+  mov x, osr
+
+  ; Actually wait for the sync pulse
+  wait 0 pin HSYNC [5]
+  wait 1 pin HSYNC [5]
+
+hsync_backporch:
+  set pins, 0 [4]
+  jmp x-- hsync_backporch
+
+; Setup visible pixels counter
+  mov x, osr
+
+write_pixel:
+
+  ; Write out a pixel
+  out pins, 4 [4]
+  jmp x-- write_pixel
+
+  ; Zero out the video pins, and wait for the next line
+  set pins, 0
+
+  ; jump to the next line 
+  jmp y-- next_line
+
+.wrap
+
+% c-sdk {
+
+static inline void vga_pwm_pio_program_init(
+  PIO pio, uint sm, uint offset, uint out_base_pin, uint sync_in_pin) {
+
+  for (uint i = 0; i < 4; i++) {
+    pio_gpio_init(pio, out_base_pin + i);
+  }
+
+  pio_sm_config cfg = vga_pwm_pio_program_get_default_config(offset);
+
+  sm_config_set_set_pins(&cfg, out_base_pin, 4);
+  sm_config_set_out_pins(&cfg, out_base_pin, 4);
+  
+  sm_config_set_in_pin_base(&cfg, sync_in_pin);
+  sm_config_set_in_pin_count(&cfg, 2);
+
+  pio_sm_init(pio, sm, offset, &cfg);
+}
+  
+%}
+
