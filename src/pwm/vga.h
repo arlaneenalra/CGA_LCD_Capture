@@ -70,7 +70,7 @@ typedef struct vga_pwm_type {
   vga_mode_t *mode;
 
   rgb_pio_t pio;
-  uint32_t pixel_dma; 
+  int pixel_dma; 
 
   uint32_t line;
 
@@ -93,7 +93,10 @@ void vga_pwm_init(
     uint8_t vsync_pin);
 
 void vga_pio_init(
-    rgb_pio_t *pio, uint8_t vsync_base_pin, uint8_t rgb_base_pin);
+    rgb_pio_t *pio,
+    vga_mode_t *mode,
+    uint8_t vsync_base_pin,
+    uint8_t rgb_base_pin);
 
 void vga_dma_init(vga_pwm_t *vga);
 void vga_dma_irq();

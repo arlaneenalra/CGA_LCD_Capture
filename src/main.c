@@ -40,7 +40,7 @@ scr_t scr;
 //vga_t vga;
 vga_frame_buf_t buffer;
 
-vga_pwm_t vga_pwm;
+vga_pwm_t vga;
 
 //uint32_t zero_line[VGA_RGB_ACTIVE];
 
@@ -122,40 +122,6 @@ void vga_pio_init(vga_t *vga, uint base_pin) {
   pio_sm_set_enabled(hsync->pio, hsync->sm, true);
   pio_sm_set_enabled(vsync->pio, vsync->sm, true);
   pio_sm_set_enabled(rgb->pio, rgb->sm, true);
-}
-
-void vga_dma_init(vga_t *vga) {
-  dma_alloc_t *dma = &(vga->dma);
-  pio_alloc_t *rgb = &(vga->rgb);
-
-  vga->line = 0;
-  //vga->line_ptr = VGA_LINE_ADDR(*vga, 0); 
-  vga->line_ptr = zero_line; 
-
-
-  // Do basic setup.
-  dma->channel = dma_claim_unused_channel(true);
-  dma->config = dma_channel_get_default_config(dma->channel);
-  
-  channel_config_set_transfer_data_size(&(dma->config), DMA_SIZE_32);
-  channel_config_set_read_increment(&(dma->config), true);
-  channel_config_set_write_increment(&(dma->config), false);
-  channel_config_set_dreq(
-      &(dma->config),
-      PIO_DREQ_NUM(rgb->pio, rgb->sm, true)
-  );
-
-  dma_channel_configure(
-      dma->channel,
-      &(dma->config),
-      &(rgb->pio->txf[rgb->sm]),
-      vga->line_ptr,
-      VGA_DMA_TRANSFERS,
-      false);
-
-  dma_channel_set_irq1_enabled(dma->channel, true);
-  irq_set_exclusive_handler(DMA_IRQ_1, vga_dma_irq);
-  irq_set_enabled(DMA_IRQ_1, true);
 }
 
 void vga_dma_irq() {
@@ -388,14 +354,14 @@ void ldo_pwm_mode() {
 
 static inline void vga_core() {
   vga_init(
-      &vga_pwm,
+      &vga,
       &(vga_mode_list[MODE_640X480_60]),
       buffer,
       VGA_HSYNC, 
       VGA_VSYNC,
       VGA_RGB_BASE_PIN);
 
-  vga_enable(&vga_pwm);
+  vga_enable(&vga);
 
   while(true) {
     tight_loop_contents();
@@ -407,23 +373,16 @@ int main() {
 
   set_sys_clock_khz(250000, true);
 
+  gpio_init(PICO_DEFAULT_LED_PIN);
+  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+
   // zero out our frame buffer
-  memset(buffer, 0xF0, sizeof(buffer));
+  //memset(buffer, 0x0C, sizeof(buffer));
 
-/*  for (int i = 0; i < VGA_RGB_ACTIVE; i++) {
-    zero_line[i] = 0x0;
-  }
-
-  for(int i=0; i<32000; i++) {
-    vga.scr[i] = 0xF0F0F0F0;
-//    vga.scr[i] = 0xFFFF0000;
-  }
-
-for(int i=0; i < 80; i ++) {
-  vga.scr[i] = 0xFFFFFFFF;
-  vga.scr[i + (399 * 80)] = 0xFFFFFFFF;
+for(int i=0; i < sizeof(buffer)/4 ; i ++) {
+  buffer[i] = 0x0000FF;
 }
-*/
+
   // tusb setup
 //  tud_init(BOARD_TUD_RHPORT);
 

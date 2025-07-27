@@ -12,22 +12,25 @@
 
 
 .wrap_target
-  set pins, 0 
- 
+  set pins, 0
+
   ; Load the number of lines in the vertical back porch
-  pull block
-  mov x, osr
+  ;pull block
+  out x, 32
+
 
   ; Load the number of visible lines.
-  mov y, osr
+  ;pull block
+  out y, 32
 
 
-  ; Wait for a V Sync to start a new frame  
+  ; Wait for a V Sync to start a new frame
   wait 0 pin VSYNC [5]
   wait 1 pin VSYNC [5]
 
 
 vsync_porch:
+
   ; Actually wait for the sync pulse
   wait 0 pin HSYNC [5]
   wait 1 pin HSYNC [5]
@@ -37,7 +40,8 @@ vsync_porch:
 next_line:
  
   ; Setup hsync back porch counter
-  mov x, osr
+  ;pull block
+  out x, 32 
 
   ; Actually wait for the sync pulse
   wait 0 pin HSYNC [5]
@@ -47,13 +51,13 @@ hsync_backporch:
   set pins, 0 [4]
   jmp x-- hsync_backporch
 
-; Setup visible pixels counter
-  mov x, osr
+  ; Setup visible pixels counter
+  ;pull block
+  out x, 32
 
 write_pixel:
-
   ; Write out a pixel
-  out pins, 4 [4]
+  out pins, 4  [4]
   jmp x-- write_pixel
 
   ; Zero out the video pins, and wait for the next line
@@ -66,11 +70,23 @@ write_pixel:
 
 % c-sdk {
 
+#include "hardware/clocks.h"
+
 static inline void vga_pwm_pio_program_init(
-  PIO pio, uint sm, uint offset, uint out_base_pin, uint sync_in_pin) {
+  PIO pio, uint sm, uint offset, uint32_t raw_pixel_clk, uint out_base_pin, uint sync_in_pin) {
+
+  uint32_t sys_clk = clock_get_hz(clk_sys);
+
+  // Calculate the 8bit part of the 16.8 divider
+  uint32_t pixel_clk = raw_pixel_clk * 5;
+  uint32_t vga_div16 = sys_clk / pixel_clk;
+  uint32_t vga_mod = sys_clk % pixel_clk;
+  uint32_t vga_frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
+
 
   for (uint i = 0; i < 4; i++) {
     pio_gpio_init(pio, out_base_pin + i);
+    gpio_set_slew_rate(out_base_pin + i, GPIO_SLEW_RATE_FAST);
   }
 
   pio_sm_config cfg = vga_pwm_pio_program_get_default_config(offset);
@@ -80,6 +96,8 @@ static inline void vga_pwm_pio_program_init(
   
   sm_config_set_in_pin_base(&cfg, sync_in_pin);
   sm_config_set_in_pin_count(&cfg, 2);
+
+  sm_config_set_clkdiv_int_frac8(&cfg, vga_div16, vga_frac8);
 
   pio_sm_init(pio, sm, offset, &cfg);
 
