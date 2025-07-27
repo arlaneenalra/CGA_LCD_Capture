@@ -387,11 +387,13 @@ void ldo_pwm_mode() {
 }
 
 static inline void vga_core() {
-  vga_pwm_init(
+  vga_init(
       &vga_pwm,
       &(vga_mode_list[MODE_640X480_60]),
+      buffer,
       VGA_HSYNC, 
-      VGA_VSYNC);
+      VGA_VSYNC,
+      VGA_RGB_BASE_PIN);
 
   vga_enable(&vga_pwm);
 

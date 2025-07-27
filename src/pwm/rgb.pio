@@ -12,7 +12,7 @@
 
 
 .wrap_target
-  set pins, 0
+  set pins, 15 
  
   ; Load the number of lines in the vertical back porch
   pull block
@@ -26,7 +26,6 @@
   wait 0 pin VSYNC [5]
   wait 1 pin VSYNC [5]
 
-  set pins, 15 
 
 vsync_porch:
   ; Actually wait for the sync pulse
@@ -83,6 +82,8 @@ static inline void vga_pwm_pio_program_init(
   sm_config_set_in_pin_count(&cfg, 2);
 
   pio_sm_init(pio, sm, offset, &cfg);
+
+  pio_sm_set_consecutive_pindirs(pio, sm, out_base_pin, 4, true);
 }
   
 %}

@@ -53,8 +53,8 @@ void vga_init(
 }
 
 void vga_enable(vga_pwm_t *vga) {
-  vga_pwm_enable(vga);
   vga_pio_enable(&(vga->pio));
+  vga_pwm_enable(vga);
 
   // Start everything off!
   vga_dma_irq();
