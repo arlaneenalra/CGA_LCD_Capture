@@ -67,7 +67,14 @@ typedef struct vga_pwm_type {
   uint8_t hsync_slice;
   uint8_t vsync_slice;
 
+  vga_mode_t *mode;
+
   rgb_pio_t pio;
+  uint32_t pixel_dma; 
+
+  uint32_t line;
+
+  uint32_t *frame_buf;
 
 } vga_pwm_t;
 
@@ -88,7 +95,7 @@ void vga_pwm_init(
 void vga_pio_init(
     rgb_pio_t *pio, uint8_t vsync_base_pin, uint8_t rgb_base_pin);
 
-void vga_dma_init(rgb_pio_t *rgb_pio, vga_mode_t *mode, uint32_t *frame_buf);
+void vga_dma_init(vga_pwm_t *vga);
 void vga_dma_irq();
 
 uint8_t vga_hsync_pwm(

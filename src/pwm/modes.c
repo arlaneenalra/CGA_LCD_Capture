@@ -1,4 +1,4 @@
-#include "vga.h"
+#include "vga_internal.h"
 
 vga_mode_t vga_mode_list[] = {
 

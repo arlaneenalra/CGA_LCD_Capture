@@ -1,4 +1,4 @@
-#include "vga.h"
+#include "vga_internal.h"
 #include "rgb.pio.h"
 
 void vga_pio_init(
