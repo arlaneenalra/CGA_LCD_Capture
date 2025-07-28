@@ -269,6 +269,7 @@ int main() {
 
   // zero out our frame buffer
   memset((void *)buffer, 0x00, sizeof(buffer));
+  memset((void *)scr.pixels, 0x00, sizeof(scr.pixels));
 
 for(int i=0; i < 80 ; i ++) {
   buffer[i] = 0xF1F2F4F8;

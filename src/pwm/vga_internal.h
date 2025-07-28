@@ -22,6 +22,8 @@ typedef struct vga_pwm_type {
   int burst_dma;
   int pixel_dma;
   int reset_dma;
+  int ctrl_dma;
+  int ctrl_reset_dma;
 
   uint32_t line;
 

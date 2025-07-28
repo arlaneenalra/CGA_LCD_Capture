@@ -4,7 +4,6 @@ add_library(vga_pwm
   modes.c
   vga.c
   dma.c
-  irq.c
 )
 
 target_include_directories(vga_pwm PUBLIC
@@ -20,6 +19,5 @@ target_link_libraries(vga_pwm
   hardware_pio
   hardware_pwm
   hardware_dma
-  hardware_irq
 )
 
