@@ -32,7 +32,7 @@
 #define VGA_FRAME_BUFF_SIZE(width, height) ((width * height * 4) / 32)
 #define VGA_FRAME_LINE_SIZE(width) ((width * 4) / 32)
 
-typedef uint32_t vga_frame_buf_t[VGA_FRAME_BUFF_SIZE(VGA_WIDTH, VGA_HEIGHT)];
+typedef volatile uint32_t vga_frame_buf_t[VGA_FRAME_BUFF_SIZE(VGA_WIDTH, VGA_HEIGHT)];
 
 typedef struct vga_sync_type {
   uint16_t front_porch;
@@ -57,7 +57,7 @@ typedef struct vga_mode_type {
 
 void vga_init(
     vga_mode_t *vga_mode,
-    uint32_t *frame_buf,
+    volatile uint32_t *frame_buf,
     uint8_t hsync_pin,
     uint8_t vsync_pin,
     uint8_t rgb_pin);

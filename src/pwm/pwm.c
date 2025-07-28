@@ -46,13 +46,16 @@ uint8_t vga_hsync_pwm(
   gpio_set_function(hsync_pin, GPIO_FUNC_PWM);
   gpio_set_function(hsync_pin + 1, GPIO_FUNC_PWM);
 
+  gpio_set_slew_rate(hsync_pin, GPIO_SLEW_RATE_FAST);
+  gpio_set_slew_rate(hsync_pin + 1, GPIO_SLEW_RATE_FAST);
+
   uint8_t slice = pwm_gpio_to_slice_num(hsync_pin);
 
   pwm_config cfg = pwm_get_default_config();
   pwm_config_set_clkdiv_int_frac4(&cfg, vga_div8, vga_frac4);
 
   // Channel B is always positive
-  pwm_config_set_output_polarity(&cfg, sync->negative, false);
+  pwm_config_set_output_polarity(&cfg, sync->negative, true);
 
   // Set Wrap Counter
   pwm_config_set_wrap(&cfg, vga_sync_total(sync));
@@ -68,6 +71,10 @@ uint8_t vga_hsync_pwm(
 uint8_t vga_vsync_pwm(vga_sync_t *sync, uint8_t vsync_pin) {
   gpio_set_function(vsync_pin, GPIO_FUNC_PWM);
   gpio_set_function(vsync_pin + 1, GPIO_FUNC_PWM);
+
+  gpio_set_slew_rate(vsync_pin, GPIO_SLEW_RATE_FAST);
+  gpio_set_slew_rate(vsync_pin + 1, GPIO_SLEW_RATE_FAST);
+
 
   uint8_t slice = pwm_gpio_to_slice_num(vsync_pin);
 

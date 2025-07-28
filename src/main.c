@@ -358,8 +358,8 @@ int main() {
   // zero out our frame buffer
   //memset(buffer, 0x0C, sizeof(buffer));
 
-for(int i=0; i < sizeof(buffer)/4 ; i ++) {
-  buffer[i] = 0xFF00FF;
+for(int i=0; i < 80 ; i ++) {
+  buffer[i] = 0x00FF00FF;
 }
 
   // tusb setup
@@ -383,6 +383,8 @@ for(int i=0; i < sizeof(buffer)/4 ; i ++) {
   while(true) {
 
     vga_dump_status();
+    printf("Framebuff: %"PRIu32"\n", sizeof(buffer));
+
     tight_loop_contents();
   }
 }

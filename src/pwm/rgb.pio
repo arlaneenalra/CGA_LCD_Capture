@@ -5,6 +5,8 @@
 .define VSYNC 0
 .define HSYNC 1
 
+.define PUBLIC CLK_PER_PIXEL 5
+
 .program vga_pwm_pio 
 
 .out 4 left auto 32
@@ -19,14 +21,14 @@
   out y, 32 ; Load the number of visible lines.
 
   ; Wait for a V Sync to start a new frame
-  wait 0 pin VSYNC [5]
-  wait 1 pin VSYNC [5]
+  wait 0 pin VSYNC [CLK_PER_PIXEL]
+  wait 1 pin VSYNC 
 
 vsync_porch:
 
   ; Actually wait for the sync pulse
-  wait 0 pin HSYNC [5]
-  wait 1 pin HSYNC [5]
+  wait 0 pin HSYNC [CLK_PER_PIXEL]
+  wait 1 pin HSYNC 
 
   jmp x-- vsync_porch
 
@@ -45,11 +47,11 @@ no_dump:
   out x, 32 
 
   ; Actually wait for the sync pulse
-  wait 0 pin HSYNC [5]
-  wait 1 pin HSYNC [5]
+  wait 0 pin HSYNC [CLK_PER_PIXEL]
+  wait 1 pin HSYNC 
 
 hsync_backporch:
-  set pins, 0 [4]
+  set pins, 0 [CLK_PER_PIXEL - 1]
   jmp x-- hsync_backporch
 
   ; Setup visible pixels counter
@@ -57,7 +59,7 @@ hsync_backporch:
 
 write_pixel:
   ; Write out a pixel
-  out pins, 4  [4]
+  out pins, 4  [CLK_PER_PIXEL - 1]
   jmp x-- write_pixel
 
   set x, 0
@@ -75,21 +77,23 @@ write_pixel:
 #include "hardware/clocks.h"
 
 static inline void vga_pwm_pio_program_init(
-  PIO pio, uint sm, uint offset, uint32_t raw_pixel_clk, uint out_base_pin, uint sync_in_pin) {
+  PIO pio, uint sm, uint offset, vga_mode_t *mode, uint out_base_pin, uint sync_in_pin) {
 
   uint32_t sys_clk = clock_get_hz(clk_sys);
 
   // Calculate the 8bit part of the 16.8 divider
-  uint32_t pixel_clk = raw_pixel_clk * 5;
-  uint32_t vga_div16 = sys_clk / pixel_clk;
+  uint32_t pixel_clk = mode->pixel_clk * CLK_PER_PIXEL;
+  uint32_t div16 = sys_clk / pixel_clk;
   uint32_t vga_mod = sys_clk % pixel_clk;
-  uint32_t vga_frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
-
+  uint32_t frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
 
   for (uint i = 0; i < 4; i++) {
     pio_gpio_init(pio, out_base_pin + i);
     gpio_set_slew_rate(out_base_pin + i, GPIO_SLEW_RATE_FAST);
   }
+
+  // We can't control the pos/neg value of vsync
+  gpio_set_inover(sync_in_pin, mode->v.negative);
 
   pio_sm_config cfg = vga_pwm_pio_program_get_default_config(offset);
 
@@ -99,11 +103,9 @@ static inline void vga_pwm_pio_program_init(
   sm_config_set_in_pin_base(&cfg, sync_in_pin);
   sm_config_set_in_pin_count(&cfg, 2);
 
-  sm_config_set_clkdiv_int_frac8(&cfg, vga_div16, vga_frac8);
-  //sm_config_set_clkdiv(&cfg, 1.0f);
+  sm_config_set_clkdiv_int_frac8(&cfg, div16, frac8);
 
   pio_sm_init(pio, sm, offset, &cfg);
-
   pio_sm_set_consecutive_pindirs(pio, sm, out_base_pin, 4, true);
 }
   

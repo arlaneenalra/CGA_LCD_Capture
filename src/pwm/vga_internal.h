@@ -27,7 +27,7 @@ typedef struct vga_pwm_type {
 
   uint32_t line;
 
-  uint32_t *frame_buf;
+  volatile uint32_t *frame_buf;
 
 } vga_pwm_t;
 

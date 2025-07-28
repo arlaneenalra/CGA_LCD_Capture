@@ -12,7 +12,7 @@ extern vga_pio_line_burst_t vga_line_burst;
 
 void vga_init(
     vga_mode_t *vga_mode,
-    uint32_t *frame_buf,
+    volatile uint32_t *frame_buf,
     uint8_t hsync_pin,
     uint8_t vsync_pin,
     uint8_t rgb_pin) {

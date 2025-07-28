@@ -1,6 +1,7 @@
 #include "vga_internal.h"
 #include "rgb.pio.h"
 
+
 void vga_pio_init(
     rgb_pio_t *pio,
     vga_mode_t *mode,
@@ -18,11 +19,12 @@ void vga_pio_init(
 
   hard_assert(rc);
 
+
   vga_pwm_pio_program_init(
       pio->pio,
       pio->sm,
       pio->offset,
-      mode->pixel_clk,
+      mode,
       rgb_base_pin,
       vsync_base_pin);
 
