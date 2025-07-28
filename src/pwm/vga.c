@@ -21,7 +21,7 @@ void vga_init(
   vga.frame_buf = frame_buf;
   
   vga_pwm_init(hsync_pin, vsync_pin);
-  vga_pio_init(&(vga.pio), vga_mode, vsync_pin, rgb_pin);
+  vga_pio_init(vga_mode, vsync_pin, rgb_pin);
 
   vga_dma_init();
 }
@@ -30,28 +30,26 @@ void vga_enable() {
   vga_pwm_enable(&vga);
   vga_pio_enable(&(vga.pio));
 
-  // Start everything off!
-  //vga_dma_irq();
-
-  vga_dma_enable();
+  // Start it all off
+  vga_dma_irq();
 }
 
 void vga_dump_status() {
   static uint32_t time = 0;
   uint32_t pc = pio_sm_get_pc(vga.pio.pio, vga.pio.sm) - vga.pio.offset;
-
+//  int irq = pio_get_irq_num(vga.pio.pio, 1);
 /*  if (pc == 21) {
     return;
   }*/
 
   printf(
-      "PIO: fifo: %d pc: %d DMA: "
+      "PIO: fifo: %d pc: %d sm: %d DMA: "
       "pixel: %d pixel_tc: %d pixel_raddr: %d "
       "burst: %d burst_tc: %d burst_raddr: %d ~ %d - %d "
-      "burst: %"PRIu32" %"PRIu32", %"PRIu32", %"PRIu32", %"PRIu32"\n",
+      "burst: %"PRIu32" %"PRIu32", %"PRIu32", %"PRIu32"\n",
+//      "IRQ: num: %d set:%d\n",
       pio_sm_get_tx_fifo_level(vga.pio.pio, vga.pio.sm),
-      pc,
-
+      pc, vga.pio.sm,
       dma_channel_is_busy(vga.pixel_dma),
       dma_hw->ch[vga.pixel_dma].transfer_count,
       dma_hw->ch[vga.pixel_dma].read_addr,
@@ -64,7 +62,8 @@ void vga_dump_status() {
       *((uint32_t *)&(vga_line_burst)),
       (((uint32_t *)&(vga_line_burst))[1]),
       (((uint32_t *)&(vga_line_burst))[2]),
-      (((uint32_t *)&(vga_line_burst))[3]),
-      VGA_FRAME_LINE_SIZE(vga.mode->h.visible)
+      (((uint32_t *)&(vga_line_burst))[3]) //,
+      /*(enum pio_interrupt_source) ((uint) pis_interrupt0 + vga.pio.sm),
+      pio_interrupt_get(vga.pio.pio, vga.pio.sm)*/
       );
 }

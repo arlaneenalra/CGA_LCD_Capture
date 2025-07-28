@@ -10,7 +10,7 @@
 .program vga_pwm_pio 
 
 .out 4 left auto 32
-;.fifo tx
+.fifo tx
 
 
   set pins, 0
@@ -69,8 +69,11 @@ write_pixel:
   ; Tell no_dump this is a new line but not a new frame
   set x, 0
 
-  ; jump to the next line 
+  ; Jump to the next line 
   jmp y-- next_line
+
+  ; We use to reset the frame buffer dma read address
+  ;irq wait 0 rel
 
 .wrap
 
@@ -104,7 +107,6 @@ static inline void vga_pwm_pio_program_init(
   uint32_t div16 = sys_clk / pixel_clk;
   uint32_t vga_mod = sys_clk % pixel_clk;
   uint32_t frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
-
 
   sm_config_set_clkdiv_int_frac8(&cfg, div16, frac8);*/
 

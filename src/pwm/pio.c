@@ -3,16 +3,15 @@
 
 
 void vga_pio_init(
-    rgb_pio_t *pio,
     vga_mode_t *mode,
     uint8_t vsync_base_pin,
     uint8_t rgb_base_pin) {
 
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
       &vga_pwm_pio_program,
-      &(pio->pio),
-      &(pio->sm),
-      &(pio->offset),
+      &(vga.pio.pio),
+      &(vga.pio.sm),
+      &(vga.pio.offset),
       rgb_base_pin,
       4,
       true);
@@ -21,9 +20,9 @@ void vga_pio_init(
 
 
   vga_pwm_pio_program_init(
-      pio->pio,
-      pio->sm,
-      pio->offset,
+      vga.pio.pio,
+      vga.pio.sm,
+      vga.pio.offset,
       mode,
       rgb_base_pin,
       vsync_base_pin);

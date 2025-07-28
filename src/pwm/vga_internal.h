@@ -59,7 +59,6 @@ extern vga_pwm_t vga;
 
 void vga_dma_init();
 void vga_dma_irq();
-void vga_dma_enable();
 
 uint8_t vga_hsync_pwm(
     vga_sync_t *sync, uint8_t hsync_pin, uint32_t pixel_clk);
@@ -72,9 +71,13 @@ void vga_pwm_init(
 void vga_pwm_enable();
 
 void vga_pio_init(
-    rgb_pio_t *pio,
     vga_mode_t *mode,
     uint8_t vsync_base_pin,
     uint8_t rgb_base_pin);
 void vga_pio_enable(rgb_pio_t *pio);
 
+/*
+void vga_irq_init();
+void vga_irq_enable();
+void vga_irq_handler();
+*/

@@ -268,10 +268,14 @@ int main() {
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
 
   // zero out our frame buffer
-  //memset(buffer, 0x0C, sizeof(buffer));
+  memset((void *)buffer, 0x00, sizeof(buffer));
 
 for(int i=0; i < 80 ; i ++) {
   buffer[i] = 0xF1F2F4F8;
+  buffer[i+80] = 0x1F2F4F8F;
+  buffer[i+160] = 0xF1F2F4F8;
+  buffer[i+240] = 0x1F2F4F8F;
+
 }
 
   // tusb setup
@@ -294,8 +298,7 @@ for(int i=0; i < 80 ; i ++) {
 //  frame_capture();
   while(true) {
 
-    /*vga_dump_status();
-    printf("Framebuff: %"PRIu32"\n", sizeof(buffer));*/
+    vga_dump_status();
 
     tight_loop_contents();
   }
