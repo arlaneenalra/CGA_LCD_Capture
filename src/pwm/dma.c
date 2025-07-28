@@ -106,7 +106,6 @@ void vga_dma_init() {
   channel_config_set_read_increment(&reset_cfg, false);
   channel_config_set_write_increment(&reset_cfg, false);
   channel_config_set_irq_quiet(&reset_cfg, true);  
-//  channel_config_set_chain_to(&reset_cfg, vga.burst_dma);
 
   dma_channel_configure(
       vga.reset_dma,
@@ -129,7 +128,6 @@ void vga_dma_init() {
       pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
   channel_config_set_irq_quiet(&burst_cfg, true);  
   channel_config_set_high_priority(&burst_cfg, true);
-  //channel_config_set_ring(&ctrl_cfg, true, 4);
   channel_config_set_chain_to(&burst_cfg, vga.pixel_dma);
 
   dma_channel_configure(
@@ -141,18 +139,6 @@ void vga_dma_init() {
       false);
 
 
-  // Setup the configuration for the pixel channel 
-/*  dma_channel_config pixel_cfg = dma_channel_get_default_config(vga.pixel_dma);
-
-  channel_config_set_transfer_data_size(&pixel_cfg, DMA_SIZE_32);
-  channel_config_set_read_increment(&pixel_cfg, true);
-  channel_config_set_write_increment(&pixel_cfg, false);
-  channel_config_set_dreq(
-      &pixel_cfg,
-      pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
-  channel_config_set_irq_quiet(&pixel_cfg, true); 
-  channel_config_set_high_priority(&pixel_cfg, true);
-  channel_config_set_chain_to(&pixel_cfg, vga.reset_dma); */
 
   dma_channel_configure(
       vga.pixel_dma,

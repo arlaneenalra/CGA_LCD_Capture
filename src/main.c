@@ -271,13 +271,11 @@ int main() {
   memset((void *)buffer, 0x00, sizeof(buffer));
   memset((void *)scr.pixels, 0x00, sizeof(scr.pixels));
 
-for(int i=0; i < 80 ; i ++) {
-  buffer[i] = 0xF1F2F4F8;
-  buffer[i+80] = 0x1F2F4F8F;
-  buffer[i+160] = 0xF1F2F4F8;
-  buffer[i+240] = 0x1F2F4F8F;
-
-}
+  for (int x=0; x < 80; x++) {
+    for (int y=0; y < 400; y++) {
+      buffer[x + y * 80] = 0xF1F2F4F8;
+    }
+  }
 
   // tusb setup
 //  tud_init(BOARD_TUD_RHPORT);
