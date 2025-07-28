@@ -271,7 +271,7 @@ int main() {
   //memset(buffer, 0x0C, sizeof(buffer));
 
 for(int i=0; i < 80 ; i ++) {
-  buffer[i] = 0xF0F0F0F0;
+  buffer[i] = 0xF1F2F4F8;
 }
 
   // tusb setup

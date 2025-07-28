@@ -51,7 +51,7 @@ no_dump:
   wait 1 pin HSYNC 
 
 hsync_backporch:
-  set pins, 0 [CLK_PER_PIXEL + 1]
+  set pins, 0 [CLK_PER_PIXEL]
   jmp x-- hsync_backporch
 
   ; Setup visible pixels counter
@@ -59,7 +59,7 @@ hsync_backporch:
 
 write_pixel:
   ; Write out a pixel
-  out pins, 4  [CLK_PER_PIXEL - 1]
+  out pins, 4  [CLK_PER_PIXEL-1]
   jmp x-- write_pixel
 
 
