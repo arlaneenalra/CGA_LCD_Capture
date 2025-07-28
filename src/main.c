@@ -207,7 +207,7 @@ void in_frame_dma_init(scr_t *scr) {
   channel_config_set_write_increment(&(dma->config), true);
   channel_config_set_dreq(
       &(dma->config),
-      PIO_DREQ_NUM(pio->pio, pio->sm, false)
+      pio_get_dreq(pio->pio, pio->sm, false)
   );
  
   dma_channel_configure(
@@ -290,18 +290,6 @@ static inline void frame_capture() {
   }
 }
 
-// Ignores any data sent to the device for now.
-void cdc_task() {
-  static char buf[64];
-  if (tud_cdc_n_available(1)) {
-    tud_cdc_n_read(1, buf, sizeof(buf));
-  }
-  if (tud_cdc_n_available(0)) {
-    tud_cdc_n_read(0, buf, sizeof(buf));
-  }
-}
-
-
 // Write data to the the high speed serial port.
 // Warning! Not thread safe!
 void __not_in_flash_func(frame_write)(const char buf[], uint32_t count) {
@@ -351,11 +339,10 @@ static inline void vga_core() {
       VGA_VSYNC,
       VGA_RGB_BASE_PIN);
 
+
   vga_enable();
 
   while(true) {
-    gpio_put(PICO_DEFAULT_LED_PIN, vga_dma_is_busy());
-
     tight_loop_contents();
   }
 }
@@ -363,8 +350,7 @@ static inline void vga_core() {
 int main() {
   ldo_pwm_mode();
 
-  //set_sys_clock_khz(250000, true);
-  set_sys_clock_khz(200000, true);
+  set_sys_clock_khz(250000, true);
 
   gpio_init(PICO_DEFAULT_LED_PIN);
   gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
@@ -373,7 +359,7 @@ int main() {
   //memset(buffer, 0x0C, sizeof(buffer));
 
 for(int i=0; i < sizeof(buffer)/4 ; i ++) {
-  buffer[i] = 0x0000FF;
+  buffer[i] = 0xFF00FF;
 }
 
   // tusb setup
@@ -387,8 +373,8 @@ for(int i=0; i < sizeof(buffer)/4 ; i ++) {
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
 //  multicore_launch_core1(frame_capture);
-//  multicore_launch_core1(vga_core);
-    vga_core();
+  multicore_launch_core1(vga_core);
+//    vga_core();
 
   // Start capturing frames
 //  frame_capture_irq();
@@ -396,8 +382,7 @@ for(int i=0; i < sizeof(buffer)/4 ; i ++) {
 //  frame_capture();
   while(true) {
 
-    //tud_task();
-    //cdc_task();
+    vga_dump_status();
     tight_loop_contents();
   }
 }

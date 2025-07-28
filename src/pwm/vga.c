@@ -1,9 +1,14 @@
+#include <stdio.h>
+
 #include "vga_internal.h"
 
+#include "hardware/pio.h"
 #include "hardware/dma.h"
 #include "hardware/irq.h"
 
 vga_pwm_t vga;
+
+extern vga_pio_line_burst_t vga_line_burst;
 
 void vga_init(
     vga_mode_t *vga_mode,
@@ -31,4 +36,35 @@ void vga_enable() {
   vga_dma_enable();
 }
 
+void vga_dump_status() {
+  static uint32_t time = 0;
+  uint32_t pc = pio_sm_get_pc(vga.pio.pio, vga.pio.sm) - vga.pio.offset;
 
+/*  if (pc == 21) {
+    return;
+  }*/
+
+  printf(
+      "PIO: fifo: %d pc: %d DMA: "
+      "pixel: %d pixel_tc: %d pixel_raddr: %d "
+      "burst: %d burst_tc: %d burst_raddr: %d ~ %d - %d "
+      "burst: %"PRIu32" %"PRIu32", %"PRIu32", %"PRIu32", %"PRIu32"\n",
+      pio_sm_get_tx_fifo_level(vga.pio.pio, vga.pio.sm),
+      pc,
+
+      dma_channel_is_busy(vga.pixel_dma),
+      dma_hw->ch[vga.pixel_dma].transfer_count,
+      dma_hw->ch[vga.pixel_dma].read_addr,
+
+      dma_channel_is_busy(vga.burst_dma),
+      dma_hw->ch[vga.burst_dma].transfer_count,
+      dma_hw->ch[vga.burst_dma].read_addr,
+      //&vga_line_burst,
+      &(vga_line_burst.v_back_porch), ((uint32_t)&vga_line_burst.h_visible) + sizeof(uint32_t),
+      *((uint32_t *)&(vga_line_burst)),
+      (((uint32_t *)&(vga_line_burst))[1]),
+      (((uint32_t *)&(vga_line_burst))[2]),
+      (((uint32_t *)&(vga_line_burst))[3]),
+      VGA_FRAME_LINE_SIZE(vga.mode->h.visible)
+      );
+}

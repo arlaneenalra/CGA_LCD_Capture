@@ -70,6 +70,6 @@ void frame_write(const char buf[], uint32_t count);
  
 char *get_6bits(uint8_t in[], uint32_t length, uint32_t offset6bit);
 
-#include "bsp/board_api.h"
+//#include "bsp/board_api.h"
 #include "tusb.h"
 #include "pico/unique_id.h"

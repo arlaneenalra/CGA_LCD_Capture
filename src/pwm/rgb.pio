@@ -35,7 +35,6 @@ vsync_porch:
   set x, 1
 
 next_line:
-
   ; Dump the vertical info if we haven't consumed it.
   jmp x-- no_dump
   out null, 32
@@ -59,8 +58,9 @@ hsync_backporch:
 write_pixel:
   ; Write out a pixel
   out pins, 4  [4]
-  set pins, 0
   jmp x-- write_pixel
+
+  set x, 0
 
   ; Zero out the video pins, and wait for the next line
   set pins, 0 
@@ -100,6 +100,7 @@ static inline void vga_pwm_pio_program_init(
   sm_config_set_in_pin_count(&cfg, 2);
 
   sm_config_set_clkdiv_int_frac8(&cfg, vga_div16, vga_frac8);
+  //sm_config_set_clkdiv(&cfg, 1.0f);
 
   pio_sm_init(pio, sm, offset, &cfg);
 

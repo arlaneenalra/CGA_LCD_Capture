@@ -23,6 +23,7 @@ typedef struct vga_pwm_type {
 
   int burst_dma;
   int pixel_dma;
+  int reset_dma;
 
   uint32_t line;
 
@@ -40,14 +41,14 @@ typedef struct vga_pwm_type {
  */
 #define VGA_LINE_BURST_ALIGNMENT (1 << 4)
 
-typedef struct vga_pio_line_burst_type {
+typedef struct __attribute__ ((packed, aligned(VGA_LINE_BURST_ALIGNMENT))) vga_pio_line_burst_type {
   uint32_t v_back_porch;
   uint32_t v_visible;
   uint32_t h_back_porch;
   uint32_t h_visible;
-} __attribute__ ((aligned(VGA_LINE_BURST_ALIGNMENT))) vga_pio_line_burst_t;
+} vga_pio_line_burst_t;
 
-#define VGA_LINE_BURST_SIZE (sizeof(vga_pio_line_burst_t)/sizeof(uint32_t))
+#define VGA_LINE_BURST_SIZE 4 
 
 /**
  * Shared internal functions and globals.

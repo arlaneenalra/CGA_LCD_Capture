@@ -3,7 +3,7 @@ add_subdirectory(pwm)
 
 add_executable(lcd_reader
   main.c
-  usb_descriptors.c
+  ##  usb_descriptors.c
 )
 
 # Make sure TinyUSB can find tusb_config.h
@@ -29,8 +29,8 @@ target_link_libraries(lcd_reader
   
   hardware_pwm
 
-  tinyusb_device
-  tinyusb_board
+  #  tinyusb_device
+  #tinyusb_board
 
   vga_pwm
 )

@@ -4,6 +4,7 @@
 #include "hardware/irq.h"
 
 volatile vga_pio_line_burst_t vga_line_burst;
+volatile void *vga_burst_addr = &vga_line_burst;
 
 void vga_dma_init() {
 
@@ -13,12 +14,13 @@ void vga_dma_init() {
   vga_line_burst.v_back_porch = vga.mode->v.back_porch;
   vga_line_burst.v_visible = vga.mode->v.visible;
   vga_line_burst.h_back_porch = vga.mode->h.back_porch;
-  vga_line_burst.h_visible = vga.mode->h.visible;
+  vga_line_burst.h_visible = vga.mode->h.visible - 1;
 
   // Allocate dma channels upfront since we need to know both channels
   // ahead of time.
   vga.burst_dma = dma_claim_unused_channel(true);
   vga.pixel_dma = dma_claim_unused_channel(true);
+  vga.reset_dma = dma_claim_unused_channel(true);
 
   // Setup the configuration for the line burst channel
   dma_channel_config burst_cfg = dma_channel_get_default_config(vga.burst_dma);
@@ -27,10 +29,10 @@ void vga_dma_init() {
   channel_config_set_read_increment(&burst_cfg, true);
   channel_config_set_write_increment(&burst_cfg, false);
   // The line burst is a repeated block.
-  channel_config_set_ring(&burst_cfg, false, VGA_LINE_BURST_ALIGNMENT);
+  channel_config_set_ring(&burst_cfg, false, VGA_LINE_BURST_ALIGNMENT );
   channel_config_set_dreq(
       &burst_cfg,
-      PIO_DREQ_NUM(vga.pio.pio, vga.pio.sm, true));
+      pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
   channel_config_set_irq_quiet(&burst_cfg, true);  
   channel_config_set_chain_to(&burst_cfg, vga.pixel_dma);
 
@@ -52,9 +54,9 @@ void vga_dma_init() {
   channel_config_set_write_increment(&pixel_cfg, false);
   channel_config_set_dreq(
       &pixel_cfg,
-      PIO_DREQ_NUM(vga.pio.pio, vga.pio.sm, true));
+      pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
   channel_config_set_irq_quiet(&pixel_cfg, true);  
-  channel_config_set_chain_to(&pixel_cfg, vga.burst_dma);
+  channel_config_set_chain_to(&pixel_cfg, vga.reset_dma);
 
   dma_channel_configure(
       vga.pixel_dma,
@@ -64,6 +66,26 @@ void vga_dma_init() {
       VGA_FRAME_LINE_SIZE(vga.mode->h.visible),
       false);
 
+  // Setup the configuration for the reset channel 
+  // Used to reset the read address of the first DMA channel for some reason
+  // a ring buffer is not working there.
+  dma_channel_config reset_cfg = dma_channel_get_default_config(vga.reset_dma);
+
+  channel_config_set_transfer_data_size(&reset_cfg, DMA_SIZE_32);
+  channel_config_set_read_increment(&reset_cfg, false);
+  channel_config_set_write_increment(&reset_cfg, false);
+  channel_config_set_irq_quiet(&reset_cfg, true);  
+
+  dma_channel_configure(
+      vga.reset_dma,
+      &reset_cfg,
+      &(dma_hw->ch[vga.burst_dma].al3_read_addr_trig),
+      &vga_burst_addr,
+      1,
+      false);
+
+ 
+
   // Enable dma
   /*dma_channel_set_irq1_enabled(pixel_dma, true);
   irq_set_exclusive_handler(DMA_IRQ_1, vga_dma_irq);
@@ -71,11 +93,7 @@ void vga_dma_init() {
 }
 
 void vga_dma_enable() {
-  dma_channel_start(vga.burst_dma);
-}
-
-bool vga_dma_is_busy() {
-  return dma_channel_is_busy(vga.pixel_dma);
+  dma_channel_start(vga.reset_dma);
 }
 
 void __not_in_flash_func(vga_dma_irq)() {

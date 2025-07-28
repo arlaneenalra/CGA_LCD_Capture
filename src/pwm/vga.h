@@ -64,7 +64,7 @@ void vga_init(
 
 void vga_enable();
 
-bool vga_dma_is_busy();
+void vga_dump_status();
 
 extern vga_mode_t vga_mode_list[];
 
