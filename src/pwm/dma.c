@@ -91,10 +91,9 @@ void vga_dma_init() {
   irq_set_enabled(DMA_IRQ_1, true);
 }
 
-void vga_dma_irq() {
-  dma_channel_acknowledge_irq1(vga.pixel_dma); 
+void __not_in_flash_func(vga_dma_irq)() {
   
-  if (vga.line == 0 ) {
+  if (vga.line <= 0 ) {
     vga.line = vga_line_burst.h_visible;
     dma_channel_set_read_addr(
       vga.pixel_dma,
@@ -103,7 +102,8 @@ void vga_dma_irq() {
   }
 
   vga.line--;
-  
+  dma_channel_acknowledge_irq1(vga.pixel_dma); 
+
   dma_channel_set_read_addr(
       vga.burst_dma,
       &vga_line_burst,

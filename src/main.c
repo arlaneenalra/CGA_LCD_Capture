@@ -199,7 +199,7 @@ static inline void frame_capture() {
     );*/
 
     last_start = frame.start;
-  }
+    }
 }
 
 // Write data to the the high speed serial port.

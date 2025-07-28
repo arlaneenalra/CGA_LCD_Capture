@@ -43,17 +43,18 @@ void vga_dump_status() {
   }*/
 
   printf(
-      "PIO: fifo: %d pc: %d sm: %d DMA: "
-      "pixel: %d pixel_tc: %d pixel_raddr: %d "
+      "line: %d PIO: fifo: %d pc: %d sm: %d DMA: "
+      "pixel: %d pixel_tc: %d pixel_raddr: %d buffer_addr: %d - %d "
       "burst: %d burst_tc: %d burst_raddr: %d ~ %d - %d "
       "burst: %"PRIu32" %"PRIu32", %"PRIu32", %"PRIu32"\n",
 //      "IRQ: num: %d set:%d\n",
+      vga.line,
       pio_sm_get_tx_fifo_level(vga.pio.pio, vga.pio.sm),
       pc, vga.pio.sm,
       dma_channel_is_busy(vga.pixel_dma),
       dma_hw->ch[vga.pixel_dma].transfer_count,
       dma_hw->ch[vga.pixel_dma].read_addr,
-
+      vga.frame_buf, ((void *)vga.frame_buf) + sizeof(vga_frame_buf_t),
       dma_channel_is_busy(vga.burst_dma),
       dma_hw->ch[vga.burst_dma].transfer_count,
       dma_hw->ch[vga.burst_dma].read_addr,
