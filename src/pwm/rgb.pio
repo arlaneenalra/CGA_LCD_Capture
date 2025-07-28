@@ -5,12 +5,12 @@
 .define VSYNC 0
 .define HSYNC 1
 
-.define PUBLIC CLK_PER_PIXEL 5
+.define PUBLIC CLK_PER_PIXEL 9
 
 .program vga_pwm_pio 
 
 .out 4 left auto 32
-.fifo tx
+;.fifo tx
 
 
   set pins, 0
@@ -21,13 +21,13 @@
   out y, 32 ; Load the number of visible lines.
 
   ; Wait for a V Sync to start a new frame
-  wait 0 pin VSYNC [CLK_PER_PIXEL]
+  wait 0 pin VSYNC [5]
   wait 1 pin VSYNC 
 
 vsync_porch:
 
   ; Actually wait for the sync pulse
-  wait 0 pin HSYNC [CLK_PER_PIXEL]
+  wait 0 pin HSYNC [5]
   wait 1 pin HSYNC 
 
   jmp x-- vsync_porch
@@ -47,11 +47,11 @@ no_dump:
   out x, 32 
 
   ; Actually wait for the sync pulse
-  wait 0 pin HSYNC [CLK_PER_PIXEL]
+  wait 0 pin HSYNC [5]
   wait 1 pin HSYNC 
 
 hsync_backporch:
-  set pins, 0 [CLK_PER_PIXEL - 1]
+  set pins, 0 [CLK_PER_PIXEL + 1]
   jmp x-- hsync_backporch
 
   ; Setup visible pixels counter
@@ -62,10 +62,12 @@ write_pixel:
   out pins, 4  [CLK_PER_PIXEL - 1]
   jmp x-- write_pixel
 
-  set x, 0
 
   ; Zero out the video pins, and wait for the next line
   set pins, 0 
+
+  ; Tell no_dump this is a new line but not a new frame
+  set x, 0
 
   ; jump to the next line 
   jmp y-- next_line
@@ -78,14 +80,6 @@ write_pixel:
 
 static inline void vga_pwm_pio_program_init(
   PIO pio, uint sm, uint offset, vga_mode_t *mode, uint out_base_pin, uint sync_in_pin) {
-
-  uint32_t sys_clk = clock_get_hz(clk_sys);
-
-  // Calculate the 8bit part of the 16.8 divider
-  uint32_t pixel_clk = mode->pixel_clk * CLK_PER_PIXEL;
-  uint32_t div16 = sys_clk / pixel_clk;
-  uint32_t vga_mod = sys_clk % pixel_clk;
-  uint32_t frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
 
   for (uint i = 0; i < 4; i++) {
     pio_gpio_init(pio, out_base_pin + i);
@@ -103,7 +97,18 @@ static inline void vga_pwm_pio_program_init(
   sm_config_set_in_pin_base(&cfg, sync_in_pin);
   sm_config_set_in_pin_count(&cfg, 2);
 
-  sm_config_set_clkdiv_int_frac8(&cfg, div16, frac8);
+  /*uint32_t sys_clk = clock_get_hz(clk_sys);
+
+  // Calculate the 8bit part of the 16.8 divider
+  uint32_t pixel_clk = mode->pixel_clk * CLK_PER_PIXEL;
+  uint32_t div16 = sys_clk / pixel_clk;
+  uint32_t vga_mod = sys_clk % pixel_clk;
+  uint32_t frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
+
+
+  sm_config_set_clkdiv_int_frac8(&cfg, div16, frac8);*/
+
+  sm_config_set_clkdiv(&cfg, 1);
 
   pio_sm_init(pio, sm, offset, &cfg);
   pio_sm_set_consecutive_pindirs(pio, sm, out_base_pin, 4, true);

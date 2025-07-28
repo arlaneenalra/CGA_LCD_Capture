@@ -34,6 +34,7 @@ void vga_dma_init() {
       &burst_cfg,
       pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
   channel_config_set_irq_quiet(&burst_cfg, true);  
+  channel_config_set_high_priority(&burst_cfg, true);
   channel_config_set_chain_to(&burst_cfg, vga.pixel_dma);
 
   dma_channel_configure(
@@ -55,7 +56,8 @@ void vga_dma_init() {
   channel_config_set_dreq(
       &pixel_cfg,
       pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
-  channel_config_set_irq_quiet(&pixel_cfg, true);  
+  channel_config_set_irq_quiet(&pixel_cfg, true); 
+  channel_config_set_high_priority(&pixel_cfg, true);
   channel_config_set_chain_to(&pixel_cfg, vga.reset_dma);
 
   dma_channel_configure(

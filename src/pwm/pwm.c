@@ -7,6 +7,8 @@
 static inline uint16_t vga_sync_total(vga_sync_t *sync);
 static inline uint32_t vga_get_enable_mask();
 
+static inline void vga_pwm_pin_setup(uint8_t pin);
+
 void vga_pwm_init(
     uint8_t hsync_pin,
     uint8_t vsync_pin) {
@@ -34,7 +36,15 @@ uint32_t static inline vga_get_enable_mask() {
 uint8_t vga_hsync_pwm(
     vga_sync_t *sync, uint8_t hsync_pin, uint32_t pixel_clk) {
 
-  // Calculate the divider
+  vga_pwm_pin_setup(hsync_pin);
+  vga_pwm_pin_setup(hsync_pin + 1);
+
+
+  uint8_t slice = pwm_gpio_to_slice_num(hsync_pin);
+
+  pwm_config cfg = pwm_get_default_config();
+
+/*  // Calculate the divider
   uint32_t sys_clk = clock_get_hz(clk_sys);
 
   // Calculate the 4bit part of the 8.4 divider
@@ -42,17 +52,9 @@ uint8_t vga_hsync_pwm(
   uint32_t vga_mod = sys_clk % pixel_clk;
   uint32_t vga_frac4 = ((vga_mod * 16) + (pixel_clk >> 1)) / pixel_clk;
 
-  
-  gpio_set_function(hsync_pin, GPIO_FUNC_PWM);
-  gpio_set_function(hsync_pin + 1, GPIO_FUNC_PWM);
+  pwm_config_set_clkdiv_int_frac4(&cfg, vga_div8, vga_frac4); */
 
-  gpio_set_slew_rate(hsync_pin, GPIO_SLEW_RATE_FAST);
-  gpio_set_slew_rate(hsync_pin + 1, GPIO_SLEW_RATE_FAST);
-
-  uint8_t slice = pwm_gpio_to_slice_num(hsync_pin);
-
-  pwm_config cfg = pwm_get_default_config();
-  pwm_config_set_clkdiv_int_frac4(&cfg, vga_div8, vga_frac4);
+  pwm_config_set_clkdiv_int_frac4(&cfg, 10, 0);
 
   // Channel B is always positive
   pwm_config_set_output_polarity(&cfg, sync->negative, true);
@@ -69,11 +71,8 @@ uint8_t vga_hsync_pwm(
 }
 
 uint8_t vga_vsync_pwm(vga_sync_t *sync, uint8_t vsync_pin) {
-  gpio_set_function(vsync_pin, GPIO_FUNC_PWM);
-  gpio_set_function(vsync_pin + 1, GPIO_FUNC_PWM);
-
-  gpio_set_slew_rate(vsync_pin, GPIO_SLEW_RATE_FAST);
-  gpio_set_slew_rate(vsync_pin + 1, GPIO_SLEW_RATE_FAST);
+  vga_pwm_pin_setup(vsync_pin);
+  vga_pwm_pin_setup(vsync_pin + 1);
 
 
   uint8_t slice = pwm_gpio_to_slice_num(vsync_pin);
@@ -96,3 +95,9 @@ uint8_t vga_vsync_pwm(vga_sync_t *sync, uint8_t vsync_pin) {
   return slice;
 }
 
+
+void vga_pwm_pin_setup(uint8_t pin) {
+  gpio_set_function(pin, GPIO_FUNC_PWM);
+  gpio_set_slew_rate(pin, GPIO_SLEW_RATE_FAST);
+  gpio_disable_pulls(pin);
+}
