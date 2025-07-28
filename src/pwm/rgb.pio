@@ -73,7 +73,7 @@ write_pixel:
   jmp y-- next_line
 
   ; We use to reset the frame buffer dma read address
-  ;irq wait 0 rel
+  irq wait 0 rel
 
 .wrap
 

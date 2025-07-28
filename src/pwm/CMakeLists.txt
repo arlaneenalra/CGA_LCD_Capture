@@ -16,7 +16,6 @@ pico_generate_pio_header(vga_pwm  ${CMAKE_CURRENT_LIST_DIR}/rgb.pio)
 
 target_link_libraries(vga_pwm
   pico_stdlib
-  ##  pico_time
 
   hardware_pio
   hardware_pwm

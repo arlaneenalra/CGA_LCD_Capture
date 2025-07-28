@@ -1,8 +1,6 @@
 #pragma once
 
 #include "vga.h"
-
-
 #include "hardware/pio.h"
 
 typedef struct rgb_pio_type {
@@ -58,7 +56,8 @@ typedef struct __attribute__ ((packed, aligned(VGA_LINE_BURST_ALIGNMENT))) vga_p
 extern vga_pwm_t vga;
 
 void vga_dma_init();
-void vga_dma_irq();
+void vga_dma_reset();
+void vga_dma_enable();
 
 uint8_t vga_hsync_pwm(
     vga_sync_t *sync, uint8_t hsync_pin, uint32_t pixel_clk);
@@ -76,8 +75,8 @@ void vga_pio_init(
     uint8_t rgb_base_pin);
 void vga_pio_enable(rgb_pio_t *pio);
 
-/*
+
 void vga_irq_init();
 void vga_irq_enable();
 void vga_irq_handler();
-*/
+
