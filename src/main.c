@@ -55,19 +55,36 @@ inline uint32_t decode_pixels(uint32_t source, uint32_t offset) {
 }
 
 void dump_frame(scr_frame_buf_t pixels) {
-  uint32_t vga_index = 0;
+  uint32_t offset = 80 * 40;
+  uint32_t vga_index = 80 * 40;
   uint32_t source = 0;
-  uint32_t dest = 0;
 
-  for (int i = 0; i < SCR_DMA_TRANSFERS; i++) {
+  // line doubled version
+  for (int x = 0; x < 20; x++) {
+    for (int y = 0; y < 200; y++) {
+      source = pixels[x + (y*20)];
+      vga_index = offset + (x * 4) + (y * 160);
+      buffer[vga_index + 80] = buffer[vga_index] = 
+        decode_pixels(source, 24);
+      buffer[vga_index + 81] = buffer[vga_index + 1] =
+        decode_pixels(source, 16);
+      buffer[vga_index + 82] = buffer[vga_index + 2] = 
+        decode_pixels(source, 8);
+      buffer[vga_index + 83] = buffer[vga_index + 3] = 
+        decode_pixels(source, 0);
+    }
+
+    //vga_index += 160;
+  }
+
+/*  for (int i = 0; i < SCR_DMA_TRANSFERS; i++) {
     source = pixels[i];
-    dest = 0;
 
     buffer[vga_index++] = decode_pixels(source, 24);
     buffer[vga_index++] = decode_pixels(source, 16);
     buffer[vga_index++] = decode_pixels(source, 8);
     buffer[vga_index++] = decode_pixels(source, 0);
-  }
+  }*/
 }
 
 
@@ -281,11 +298,11 @@ int main() {
   memset((void *)buffer, 0x00, sizeof(buffer));
   memset((void *)scr.pixels, 0x00, sizeof(scr.pixels));
 
-  for (int x=0; x < 80; x++) {
+  /*for (int x=0; x < 80; x++) {
     for (int y=0; y < 400; y++) {
       buffer[x + y * 80] = (y % 2 == 0) ? 0x00F2F4F8 : 0x1F2F4F8;
     }
-  }
+  }*/
 
   stdio_init_all();
 
