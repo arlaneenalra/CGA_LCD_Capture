@@ -12,8 +12,6 @@ volatile void *vga_burst_addr = &vga_line_burst;
 typedef struct vga_ctrl_blk_type {
   uint32_t ctrl;
   void volatile *read_addr;
-  /*void volatile *write_addr;
-  uint32_t trans_count;*/
 } vga_ctrl_blk_t;
 
 vga_ctrl_blk_t ctrl_blks[VGA_HEIGHT];
@@ -29,7 +27,6 @@ void vga_dma_init() {
   vga_line_burst.h_back_porch = vga.mode->h.back_porch;
   vga_line_burst.h_visible = vga.mode->h.visible - 1;
 
-
   // Setup Control blocks
   // Allocate dma channels upfront since we need to know both channels
   // ahead of time.
@@ -39,11 +36,13 @@ void vga_dma_init() {
   vga.ctrl_dma = dma_claim_unused_channel(true);
   vga.ctrl_reset_dma = dma_claim_unused_channel(true);
 
-  dma_channel_config ctrl_reset_cfg = dma_channel_get_default_config(vga.ctrl_reset_dma);
+  dma_channel_config ctrl_reset_cfg = dma_channel_get_default_config(
+      vga.ctrl_reset_dma);
 
   channel_config_set_transfer_data_size(&ctrl_reset_cfg, DMA_SIZE_32);
   channel_config_set_read_increment(&ctrl_reset_cfg, false);
   channel_config_set_write_increment(&ctrl_reset_cfg, false);
+  channel_config_set_high_priority(&ctrl_reset_cfg, true);
   channel_config_set_irq_quiet(&ctrl_reset_cfg, true);  
 
   dma_channel_configure(
@@ -86,6 +85,7 @@ void vga_dma_init() {
   channel_config_set_read_increment(&ctrl_cfg, true);
   channel_config_set_write_increment(&ctrl_cfg, true);
   channel_config_set_ring(&ctrl_cfg, true, 3);
+  channel_config_set_high_priority(&ctrl_cfg, true);
   channel_config_set_irq_quiet(&ctrl_cfg, true);  
   channel_config_set_chain_to(&ctrl_cfg, vga.reset_dma);
 
@@ -105,6 +105,7 @@ void vga_dma_init() {
   channel_config_set_transfer_data_size(&reset_cfg, DMA_SIZE_32);
   channel_config_set_read_increment(&reset_cfg, false);
   channel_config_set_write_increment(&reset_cfg, false);
+  channel_config_set_high_priority(&reset_cfg, true);
   channel_config_set_irq_quiet(&reset_cfg, true);  
 
   dma_channel_configure(
@@ -137,7 +138,6 @@ void vga_dma_init() {
       &vga_line_burst,
       VGA_LINE_BURST_SIZE,
       false);
-
 
 
   dma_channel_configure(

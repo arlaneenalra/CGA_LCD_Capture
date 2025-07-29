@@ -37,30 +37,39 @@ vga_frame_buf_t buffer;
 
 queue_t frame_queue;
 
+// Decodes a block of 8 pixesls from the source
+inline uint32_t decode_pixels(uint32_t source, uint32_t offset) {
+  uint32_t block = (source & (0x000000FF << offset)) >> offset;
+  
+  return 
+    ((block & 0x01) > 0 ? 0x0000000F : 0x0 ) |
+    ((block & 0x02) > 0 ? 0x000000F0 : 0x0 ) |
+    ((block & 0x04) > 0 ? 0x00000F00 : 0x0 ) |
+    ((block & 0x08) > 0 ? 0x0000F000 : 0x0 ) |
+
+    ((block & 0x10) > 0 ? 0x000F0000 : 0x0 ) |
+    ((block & 0x20) > 0 ? 0x00F00000 : 0x0 ) |
+    ((block & 0x40) > 0 ? 0x0F000000 : 0x0 ) |
+    ((block & 0x80) > 0 ? 0xF0000000 : 0x0 );
+
+}
+
 void dump_frame(scr_frame_buf_t pixels) {
-/*  uint32_t vga_index = 0;
+  uint32_t vga_index = 0;
   uint32_t source = 0;
   uint32_t dest = 0;
 
   for (int i = 0; i < SCR_DMA_TRANSFERS; i++) {
     source = pixels[i];
     dest = 0;
-    for (int j=0; j < 32; j++) {
-      dest = dest >> 4;
-      if (source & 1 > 0) {
-        dest = dest + 0xF0000000; 
-      }
-      source = source >> 1;
 
-      vga.scr[vga_index] = dest;
-
-      if (j % 8 == 3) {
-        vga_index++;
-        dest = 0;
-      }
-    }
-  }*/
+    buffer[vga_index++] = decode_pixels(source, 24);
+    buffer[vga_index++] = decode_pixels(source, 16);
+    buffer[vga_index++] = decode_pixels(source, 8);
+    buffer[vga_index++] = decode_pixels(source, 0);
+  }
 }
+
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
@@ -255,6 +264,7 @@ static inline void vga_core() {
   vga_enable();
 
   while(true) {
+    //vga_dump_status();
     tight_loop_contents();
   }
 }
@@ -273,32 +283,26 @@ int main() {
 
   for (int x=0; x < 80; x++) {
     for (int y=0; y < 400; y++) {
-      buffer[x + y * 80] = 0xF1F2F4F8;
+      buffer[x + y * 80] = (y % 2 == 0) ? 0x00F2F4F8 : 0x1F2F4F8;
     }
   }
 
-  // tusb setup
-//  tud_init(BOARD_TUD_RHPORT);
-
   stdio_init_all();
 
-//  in_frame_pio_init(&scr.pio, D0);
-//  in_frame_dma_init(&scr);
+  in_frame_pio_init(&scr.pio, D0);
+  in_frame_dma_init(&scr);
 
   queue_init(&frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
-//  multicore_launch_core1(frame_capture);
   multicore_launch_core1(vga_core);
-//    vga_core();
 
   // Start capturing frames
-//  frame_capture_irq();
+  frame_capture_irq();
   
-//  frame_capture();
+  frame_capture();
   while(true) {
 
-    vga_dump_status();
-
+    //vga_dump_status();
     tight_loop_contents();
   }
 }
