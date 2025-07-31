@@ -10,6 +10,21 @@ typedef struct rgb_pio_type {
 
 } rgb_pio_t;
 
+/**
+ * Defines the values that VGA pio needs to track in the order that
+ * pio code expects them. This block is sent to the pio on every
+ * line even with certain values ignored to simplify the irq complexity
+ * and timing.
+ *
+ */
+typedef struct __attribute__ ((packed, aligned(1 << 4))) vga_pio_line_burst_type {
+  uint32_t v_back_porch;
+  uint32_t v_visible;
+  uint32_t h_back_porch;
+  uint32_t h_visible;
+} vga_pio_line_burst_t;
+
+#define VGA_LINE_BURST_SIZE 4 
 
 typedef struct vga_pwm_type {
   uint8_t hsync_slice;
@@ -30,25 +45,6 @@ typedef struct vga_pwm_type {
   volatile uint32_t *frame_buf;
 
 } vga_pwm_t;
-
-/**
- * Defines the values that VGA pio needs to track in the order that
- * pio code expects them. This block is sent to the pio on every
- * line even with certain values ignored to simplify the irq complexity
- * and timing.
- *
- * This must be aligned because it is used as a ring buffer by dma.
- */
-#define VGA_LINE_BURST_ALIGNMENT (1 << 4)
-
-typedef struct __attribute__ ((packed, aligned(VGA_LINE_BURST_ALIGNMENT))) vga_pio_line_burst_type {
-  uint32_t v_back_porch;
-  uint32_t v_visible;
-  uint32_t h_back_porch;
-  uint32_t h_visible;
-} vga_pio_line_burst_t;
-
-#define VGA_LINE_BURST_SIZE 4 
 
 /**
  * Shared internal functions and globals.

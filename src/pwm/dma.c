@@ -3,9 +3,6 @@
 #include "hardware/dma.h"
 #include "hardware/irq.h"
 
-volatile vga_pio_line_burst_t vga_line_burst;
-volatile void *vga_burst_addr = &vga_line_burst;
-
 /**
  * Control blocks designed around Alias 1
  */
@@ -14,10 +11,13 @@ typedef struct vga_ctrl_blk_type {
   void volatile *read_addr;
 } vga_ctrl_blk_t;
 
-vga_ctrl_blk_t ctrl_blks[VGA_HEIGHT];
-volatile void *ctrl_blks_addr = &ctrl_blks[0];
-
 void vga_dma_init() {
+  volatile static vga_pio_line_burst_t vga_line_burst;
+  volatile static void *vga_burst_addr = &vga_line_burst;
+
+  static vga_ctrl_blk_t ctrl_blks[VGA_HEIGHT];
+  volatile static void *ctrl_blks_addr = &ctrl_blks[0];
+
 
   uint32_t line_size = VGA_FRAME_LINE_SIZE(vga.mode->h.visible);
 
@@ -122,8 +122,6 @@ void vga_dma_init() {
   channel_config_set_transfer_data_size(&burst_cfg, DMA_SIZE_32);
   channel_config_set_read_increment(&burst_cfg, true);
   channel_config_set_write_increment(&burst_cfg, false);
-  // The line burst is a repeated block.
-  channel_config_set_ring(&burst_cfg, false, VGA_LINE_BURST_ALIGNMENT );
   channel_config_set_dreq(
       &burst_cfg,
       pio_get_dreq(vga.pio.pio, vga.pio.sm, true));
@@ -144,7 +142,6 @@ void vga_dma_init() {
       vga.pixel_dma,
       &pixel_cfg,
       &(vga.pio.pio->txf[vga.pio.sm]),
-      //vga.frame_buf,
       0,
       line_size,
       false);
