@@ -79,8 +79,6 @@ write_pixel:
 
 % c-sdk {
 
-#include "hardware/clocks.h"
-
 static inline void vga_pwm_pio_program_init(
   PIO pio, uint sm, uint offset, vga_mode_t *mode, uint out_base_pin, uint sync_in_pin) {
 
@@ -100,16 +98,7 @@ static inline void vga_pwm_pio_program_init(
   sm_config_set_in_pin_base(&cfg, sync_in_pin);
   sm_config_set_in_pin_count(&cfg, 2);
 
-  /*uint32_t sys_clk = clock_get_hz(clk_sys);
-
-  // Calculate the 8bit part of the 16.8 divider
-  uint32_t pixel_clk = mode->pixel_clk * CLK_PER_PIXEL;
-  uint32_t div16 = sys_clk / pixel_clk;
-  uint32_t vga_mod = sys_clk % pixel_clk;
-  uint32_t frac8 = ((vga_mod * 256) + (pixel_clk >> 1)) / pixel_clk; 
-
-  sm_config_set_clkdiv_int_frac8(&cfg, div16, frac8);*/
-
+  // Hard setting the clock for now.
   sm_config_set_clkdiv(&cfg, 1);
 
   pio_sm_init(pio, sm, offset, &cfg);

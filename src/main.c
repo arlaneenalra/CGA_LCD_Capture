@@ -271,7 +271,6 @@ void ldo_pwm_mode() {
 
 static inline void vga_core() {
   vga_init(
-      &(vga_mode_list[MODE_640X480_60]),
       buffer,
       VGA_HSYNC, 
       VGA_VSYNC,
@@ -281,7 +280,6 @@ static inline void vga_core() {
   vga_enable();
 
   while(true) {
-    //vga_dump_status();
     tight_loop_contents();
   }
 }
@@ -298,12 +296,6 @@ int main() {
   memset((void *)buffer, 0x00, sizeof(buffer));
   memset((void *)scr.pixels, 0x00, sizeof(scr.pixels));
 
-  /*for (int x=0; x < 80; x++) {
-    for (int y=0; y < 400; y++) {
-      buffer[x + y * 80] = (y % 2 == 0) ? 0x00F2F4F8 : 0x1F2F4F8;
-    }
-  }*/
-
   stdio_init_all();
 
   in_frame_pio_init(&scr.pio, D0);
@@ -319,7 +311,6 @@ int main() {
   frame_capture();
   while(true) {
 
-    //vga_dump_status();
     tight_loop_contents();
   }
 }

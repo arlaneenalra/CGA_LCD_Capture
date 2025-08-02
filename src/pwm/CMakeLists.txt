@@ -1,7 +1,6 @@
 add_library(vga_pwm
   pwm.c
   pio.c
-  modes.c
   vga.c
   dma.c
 )

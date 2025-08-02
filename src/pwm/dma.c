@@ -19,13 +19,13 @@ void vga_dma_init() {
   volatile static void *ctrl_blks_addr = &ctrl_blks[0];
 
 
-  uint32_t line_size = VGA_FRAME_LINE_SIZE(vga.mode->h.visible);
+  uint32_t line_size = VGA_FRAME_LINE_SIZE(vga.mode.h.visible);
 
   // Setup the line burst that we need to send every line 
-  vga_line_burst.v_back_porch = vga.mode->v.back_porch;
-  vga_line_burst.v_visible = vga.mode->v.visible - 1;
-  vga_line_burst.h_back_porch = vga.mode->h.back_porch;
-  vga_line_burst.h_visible = vga.mode->h.visible - 1;
+  vga_line_burst.v_back_porch = vga.mode.v.back_porch;
+  vga_line_burst.v_visible = vga.mode.v.visible - 1;
+  vga_line_burst.h_back_porch = vga.mode.h.back_porch;
+  vga_line_burst.h_visible = vga.mode.h.visible - 1;
 
   // Setup Control blocks
   // Allocate dma channels upfront since we need to know both channels

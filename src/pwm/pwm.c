@@ -15,8 +15,8 @@ void vga_pwm_init(
 
   // Setup the sync signals 
   vga.hsync_slice = vga_hsync_pwm(
-      &(vga.mode->h), hsync_pin, vga.mode->pixel_clk);
-  vga.vsync_slice = vga_vsync_pwm(&(vga.mode->v), vsync_pin);
+      &(vga.mode.h), hsync_pin, vga.mode.pixel_clk);
+  vga.vsync_slice = vga_vsync_pwm(&(vga.mode.v), vsync_pin);
 }
 
 
@@ -43,16 +43,6 @@ uint8_t vga_hsync_pwm(
   uint8_t slice = pwm_gpio_to_slice_num(hsync_pin);
 
   pwm_config cfg = pwm_get_default_config();
-
-/*  // Calculate the divider
-  uint32_t sys_clk = clock_get_hz(clk_sys);
-
-  // Calculate the 4bit part of the 8.4 divider
-  uint32_t vga_div8 = sys_clk / pixel_clk;
-  uint32_t vga_mod = sys_clk % pixel_clk;
-  uint32_t vga_frac4 = ((vga_mod * 16) + (pixel_clk >> 1)) / pixel_clk;
-
-  pwm_config_set_clkdiv_int_frac4(&cfg, vga_div8, vga_frac4); */
 
   pwm_config_set_clkdiv_int_frac4(&cfg, 10, 0);
 
@@ -94,7 +84,6 @@ uint8_t vga_vsync_pwm(vga_sync_t *sync, uint8_t vsync_pin) {
 
   return slice;
 }
-
 
 void vga_pwm_pin_setup(uint8_t pin) {
   gpio_set_function(pin, GPIO_FUNC_PWM);

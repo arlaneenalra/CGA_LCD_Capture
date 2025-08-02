@@ -26,11 +26,35 @@ typedef struct __attribute__ ((packed, aligned(1 << 4))) vga_pio_line_burst_type
 
 #define VGA_LINE_BURST_SIZE 4 
 
+typedef struct vga_sync_type {
+  uint16_t front_porch;
+  uint16_t pulse;
+  uint16_t back_porch;
+  uint16_t visible;
+  
+  bool negative;
+
+} vga_sync_t;
+
+typedef struct vga_mode_type {
+  // Not used in this implementation. 
+  uint32_t pixel_clk;
+
+  // based off pixel clock
+  vga_sync_t h;
+
+  // based off lines
+  vga_sync_t v;
+
+} vga_mode_t;
+
+
+
 typedef struct vga_pwm_type {
   uint8_t hsync_slice;
   uint8_t vsync_slice;
 
-  vga_mode_t *mode;
+  vga_mode_t mode;
 
   rgb_pio_t pio;
 
@@ -61,20 +85,13 @@ uint8_t vga_hsync_pwm(
     vga_sync_t *sync, uint8_t hsync_pin, uint32_t pixel_clk);
 uint8_t vga_vsync_pwm(vga_sync_t *sync, uint8_t vsync_pin);
 
-
 void vga_pwm_init(
     uint8_t hsync_pin,
     uint8_t vsync_pin);
 void vga_pwm_enable();
 
 void vga_pio_init(
-    vga_mode_t *mode,
     uint8_t vsync_base_pin,
     uint8_t rgb_base_pin);
 void vga_pio_enable(rgb_pio_t *pio);
-
-
-void vga_irq_init();
-void vga_irq_enable();
-void vga_irq_handler();
 
