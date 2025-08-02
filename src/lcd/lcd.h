@@ -1,7 +1,10 @@
 #pragma once
 
+#include <inttypes.h>
+
 #include "hardware/pio.h"
 #include "hardware/dma.h"
+#include "pico/util/queue.h"
 
 #define SCR_WIDTH 640
 #define SCR_HEIGHT 200
@@ -46,12 +49,12 @@ typedef struct dma_alloc_type {
 typedef struct queue_frame_type {
   uint8_t frame;
   uint16_t dropped;
-  absolute_time_t start, end;
 
 } queue_frame_t;
 
 // define our baseline frame buffer.
 typedef uint32_t scr_frame_buf_t[SCR_FRAME_SIZE];
+typedef void (*frame_handler_t)(scr_frame_buf_t pixels);
 
 typedef struct scr_type {
   scr_frame_buf_t pixels[FRAME_BUFFER_LENGTH];
@@ -59,17 +62,20 @@ typedef struct scr_type {
 
   pio_alloc_t pio;
   dma_alloc_t dma;
+
+  queue_t frame_queue;
+
+  frame_handler_t handler;
+
 } scr_t;
 
+void in_frame_init(frame_handler_t handler, uint base_pin);
 void in_frame_pio_init(pio_alloc_t *pio_alloc, uint base_pin);
-void in_frame_dma_init(scr_t *scr);
-void dump_frame(scr_frame_buf_t pixels);
+void in_frame_dma_init();
+
 void frame_capture_irq();
-void frame_write(const char buf[], uint32_t count);
- 
- 
+void frame_capture();
+
 char *get_6bits(uint8_t in[], uint32_t length, uint32_t offset6bit);
 
-//#include "bsp/board_api.h"
-#include "tusb.h"
-#include "pico/unique_id.h"
+extern scr_t scr;

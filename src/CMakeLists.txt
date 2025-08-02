@@ -1,5 +1,6 @@
 
 add_subdirectory(pwm)
+add_subdirectory(lcd)
 
 add_executable(lcd_reader
   main.c
@@ -9,8 +10,6 @@ add_executable(lcd_reader
 target_include_directories(lcd_reader PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/libb64)
-
-pico_generate_pio_header(lcd_reader ${CMAKE_CURRENT_LIST_DIR}/lcd.pio)
 
 pico_enable_stdio_usb(lcd_reader 1)
 pico_enable_stdio_uart(lcd_reader 0)
@@ -29,4 +28,5 @@ target_link_libraries(lcd_reader
   hardware_pwm
 
   vga_pwm
+  lcd_capture
 )
