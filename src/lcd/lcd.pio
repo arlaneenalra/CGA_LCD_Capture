@@ -22,13 +22,13 @@
   ; We need to wait for a low to make sure we aren't picking
   ; somewhere in the first line. This pin going high means
   ; we have a frame start
-  wait 0 pin IN_FRAME_START_PIN_OFFSET
+  wait 0 pin IN_FRAME_START_PIN_OFFSET [1]
   wait 1 pin IN_FRAME_START_PIN_OFFSET
 
 .wrap_target
 
   ; Data is valid on the falling edge of the dot clock
-  wait 1 pin IN_FRAME_DOT_CLOCK_OFFSET
+  wait 1 pin IN_FRAME_DOT_CLOCK_OFFSET [1]
   wait 0 pin IN_FRAME_DOT_CLOCK_OFFSET
 
   in pins 4

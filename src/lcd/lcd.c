@@ -11,6 +11,8 @@ void in_frame_init(frame_handler_t handler, uint base_pin) {
 }
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
+
+
   bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
     &in_frame_program,
     &(pio_alloc->pio),
@@ -23,23 +25,17 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
   hard_assert(rc);
 
   for (uint i = 0; i < DOT_CLOCK; i++) {
-    pio_gpio_init(pio_alloc->pio, i + base_pin);
+    //pio_gpio_init(pio_alloc->pio, i+base_pin);
+
+    gpio_set_function(i + base_pin,  GPIO_FUNC_SIO);
+    gpio_disable_pulls(i + base_pin);
+    gpio_pull_up(i + base_pin);
   }
-
-
-  pio_set_gpio_base(pio_alloc->pio, base_pin);
 
   pio_sm_config c = in_frame_program_get_default_config(pio_alloc->offset);
 
-  // TODO : I may need to move this after pio_sm_init ...
-  pio_sm_set_consecutive_pindirs(
-    pio_alloc->pio,
-    pio_alloc->sm,
-    base_pin,
-    IN_FRAME_PINS,
-    false);
-
   sm_config_set_clkdiv(&c, 1.0f);
+
   sm_config_set_in_pins(&c, base_pin);
 
   pio_sm_init(pio_alloc->pio, pio_alloc->sm, pio_alloc->offset, &c); 
@@ -78,7 +74,7 @@ void in_frame_dma_init() {
 }
 
 void frame_capture_irq() {
-  static queue_frame_t irq_frame = {0, 0,};
+  static queue_frame_t irq_frame = {0, 0};
 
   // cleanly (re)start the PIO
   pio_sm_set_enabled(scr.pio.pio, scr.pio.sm, false);
