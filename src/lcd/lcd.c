@@ -12,15 +12,11 @@ void in_frame_init(frame_handler_t handler, uint base_pin) {
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
-
-  bool rc = pio_claim_free_sm_and_add_program_for_gpio_range(
+  bool rc = pio_claim_free_sm_and_add_program(
     &in_frame_program,
     &(pio_alloc->pio),
     &(pio_alloc->sm),
-    &(pio_alloc->offset),
-    base_pin,
-    IN_FRAME_PINS,
-    true);
+    &(pio_alloc->offset));
 
   hard_assert(rc);
 
@@ -36,9 +32,11 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
   sm_config_set_clkdiv(&c, 1.0f);
 
-  sm_config_set_in_pins(&c, base_pin);
+  sm_config_set_in_pin_base(&c, base_pin);
+  sm_config_set_in_pin_count(&c, IN_FRAME_PINS);
 
   pio_sm_init(pio_alloc->pio, pio_alloc->sm, pio_alloc->offset, &c); 
+
 }
 
 void in_frame_dma_init() {
@@ -71,6 +69,7 @@ void in_frame_dma_init() {
   dma_channel_set_irq0_enabled(dma->channel, true);
   irq_set_exclusive_handler(DMA_IRQ_0, frame_capture_irq);
   irq_set_enabled(DMA_IRQ_0, true);
+
 }
 
 void frame_capture_irq() {
