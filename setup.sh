@@ -7,6 +7,8 @@ DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 export PICO_SDK_PATH=${DIR}/pico-sdk
 export PICO_EXTRAS_PATH=${DIR}/pico-extras
+export PICO_DVI_PATH=${DIR}/PicoDVI/software
+
 
 export BUILD_TYPE=Release
 
@@ -23,20 +25,31 @@ get_core_count() {
 }
 
 setup() {
+  PICO_BOARD=${PICO_BOARD:-pico}
   export PICO_PLATFORM
-  export BUILD_DIR=${DIR}/build/${PICO_PLATFORM}
+  export PICO_BOARD
+  
+  TARGET_DIR_DEFAULT=${PICO_PLATFORM:-$PICO_BOARD}
+  TARGET_DIR=${TARGET_DIR:-$TARGET_DIR_DEFAULT}
 
-  echo "Building for ${PICO_PLATFORM}" 
+  export BUILD_DIR=${DIR}/build/${TARGET_DIR}
+
+  echo "Building for ${TARGET_DIR}" 
 
   cmake -E make_directory ${BUILD_DIR}
 
   (
     cd  ${BUILD_DIR}
 
-    cmake ${DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
+    cmake ${DIR} \
+      -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+      -DPICO_COPY_TO_RAM=1 \
+      -DDVI_DEFAULT_SERIAL_CONFIG=${DVI_DEFAULT_SERIAL_CONFIG} \
+      -DPICO_BOARD=${PICO_BOARD}
+
     cmake --build . --config $BUILD_TYPE --parallel $(get_core_count)
   )
 }
 
-PICO_PLATFORM=rp2040 setup 
-PICO_PLATFORM=rp2350 setup 
+TARGET_DIR=rp2040-feather PICO_BOARD=adafruit_feather_rp2040 PICO_PLATFORM=rp2040 DVI_DEFAULT_SERIAL_CONFIG=adafruit_feather_dvi_cfg setup 
+PICO_PLATFORM=rp2350 PICO_BOARD=pico2 DVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg setup 

@@ -2,12 +2,17 @@
 
 scr_t scr;
 
-void in_frame_init(frame_handler_t handler, uint base_pin) {
+void in_frame_init(frame_handler_t handler, uint base_pin, irq_num_t dma_irq, uint oe_pin) {
   memset((void *)scr.pixels, 0x00, sizeof(scr.pixels));
   scr.handler = handler;
+  scr.oe_pin = oe_pin;
+
+  gpio_init(oe_pin);
+  gpio_put(oe_pin, true);
+  gpio_set_dir(oe_pin, GPIO_OUT);
 
   in_frame_pio_init(&scr.pio, base_pin);
-  in_frame_dma_init(&scr);
+  in_frame_dma_init(dma_irq);
 }
 
 void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
@@ -20,28 +25,35 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
   hard_assert(rc);
 
-  for (uint i = 0; i < DOT_CLOCK; i++) {
-    //pio_gpio_init(pio_alloc->pio, i+base_pin);
 
-    gpio_set_function(i + base_pin,  GPIO_FUNC_SIO);
+ for (uint i = base_pin; i < IN_FRAME_PINS; i++) {
+    pio_gpio_init(pio_alloc->pio, i+base_pin);
+
     gpio_disable_pulls(i + base_pin);
-    gpio_pull_up(i + base_pin);
   }
+
+  pio_sm_set_consecutive_pindirs(
+      pio_alloc->pio,
+      pio_alloc->sm,
+      base_pin, IN_FRAME_PINS, false);
+
 
   pio_sm_config c = in_frame_program_get_default_config(pio_alloc->offset);
 
   sm_config_set_clkdiv(&c, 1.0f);
 
-  sm_config_set_in_pin_base(&c, base_pin);
-  sm_config_set_in_pin_count(&c, IN_FRAME_PINS);
+  sm_config_set_in_pins(&c, base_pin);
+  /*sm_config_set_in_pin_base(&c, base_pin);
+  sm_config_set_in_pin_count(&c, IN_FRAME_PINS);a*/
 
-  pio_sm_init(pio_alloc->pio, pio_alloc->sm, pio_alloc->offset, &c); 
+  pio_sm_init(pio_alloc->pio, pio_alloc->sm, pio_alloc->offset, &c);
+ }
 
-}
-
-void in_frame_dma_init() {
+void in_frame_dma_init(irq_num_t dma_irq) {
   dma_alloc_t *dma = &(scr.dma);
   pio_alloc_t *pio = &(scr.pio);
+
+  dma->dma_irq = dma_irq;
 
   queue_init(&scr.frame_queue, sizeof(queue_frame_t), FRAME_COUNT);
 
@@ -66,10 +78,9 @@ void in_frame_dma_init() {
       false);
   
   // Setup IRQ
-  dma_channel_set_irq0_enabled(dma->channel, true);
-  irq_set_exclusive_handler(DMA_IRQ_0, frame_capture_irq);
-  irq_set_enabled(DMA_IRQ_0, true);
-
+  dma_irqn_set_channel_enabled(dma_irq - DMA_IRQ_0, dma->channel, true);
+  irq_set_exclusive_handler(dma_irq, frame_capture_irq);
+  irq_set_enabled(dma_irq, true);
 }
 
 void frame_capture_irq() {
@@ -84,7 +95,7 @@ void frame_capture_irq() {
   irq_frame.frame = scr.frame;
 
   // Clear the IRQ
-  dma_channel_acknowledge_irq0(scr.dma.channel);
+  dma_irqn_acknowledge_channel(scr.dma.dma_irq - DMA_IRQ_0, scr.dma.channel);
 
   // Attempt to push a new frame, or drop a frame
   // and update the dropped frame counter
@@ -111,6 +122,8 @@ void frame_capture() {
   static absolute_time_t last_start;
   queue_frame_t frame;
   uint8_t count = 0;
+
+  gpio_put(scr.oe_pin, false);
 
   while(true) {
     queue_remove_blocking(&scr.frame_queue, &frame);

@@ -33,7 +33,9 @@
 #define LATCH_LINE D0 + 5)
 #define DOT_CLOCK (D0 + 6)
 
-#define IN_FRAME_PINS (DOT_CLOCK - D0)
+#define OE_PIN  7
+
+#define IN_FRAME_PINS (DOT_CLOCK - D0 + 1)
 
 typedef struct pio_alloc_type {
   PIO pio;
@@ -44,6 +46,7 @@ typedef struct pio_alloc_type {
 typedef struct dma_alloc_type {
   int channel;
   dma_channel_config config;
+  irq_num_t dma_irq;
 } dma_alloc_t;
 
 typedef struct queue_frame_type {
@@ -63,15 +66,17 @@ typedef struct scr_type {
   pio_alloc_t pio;
   dma_alloc_t dma;
 
+  uint oe_pin;
+
   queue_t frame_queue;
 
   frame_handler_t handler;
 
 } scr_t;
 
-void in_frame_init(frame_handler_t handler, uint base_pin);
+void in_frame_init(frame_handler_t handler, uint base_pin, irq_num_t dma_irq, uint oe_pin);
 void in_frame_pio_init(pio_alloc_t *pio_alloc, uint base_pin);
-void in_frame_dma_init();
+void in_frame_dma_init(irq_num_t dma_irq);
 
 void frame_capture_irq();
 void frame_capture();

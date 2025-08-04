@@ -9,7 +9,7 @@
 #include "pico/binary_info.h"
 #include "hardware/clocks.h"
 
-#include "lcd/lcd.h"
+#include "lcd.h"
 
 #include "pwm/vga.h"
 
@@ -104,7 +104,7 @@ int main() {
 
   stdio_init_all();
   
-  in_frame_init(&dump_frame, D0);
+  in_frame_init(&dump_frame, D0, DMA_IRQ_0, OE_PIN);
 
   multicore_launch_core1(vga_core);
 
