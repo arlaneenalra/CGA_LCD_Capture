@@ -26,8 +26,11 @@ get_core_count() {
 
 setup() {
   PICO_BOARD=${PICO_BOARD:-pico}
+  DVI_DEFAULT_SERIAL_CONFIG=${DVI_DEFAULT_SERIAL_CONFIG:-pico_sock_cfg}
+
   export PICO_PLATFORM
   export PICO_BOARD
+  export DVI_DEFAULT_SERIAL_CONFIG 
   
   TARGET_DIR_DEFAULT=${PICO_PLATFORM:-$PICO_BOARD}
   TARGET_DIR=${TARGET_DIR:-$TARGET_DIR_DEFAULT}
@@ -53,6 +56,5 @@ setup() {
 
 # Doesn't work yet.
 #TARGET_DIR=rp2040-feather PICO_BOARD=adafruit_feather_rp2040 PICO_PLATFORM=rp2040 DVI_DEFAULT_SERIAL_CONFIG=adafruit_feather_dvi_cfg setup 
-
 TARGET_DIR=rp2040 PICO_PLATFORM=rp2040 setup 
 PICO_PLATFORM=rp2350 PICO_BOARD=pico2 DVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg setup 
