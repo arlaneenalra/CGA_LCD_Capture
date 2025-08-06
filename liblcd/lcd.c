@@ -27,7 +27,7 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
 
 
  for (uint i = base_pin; i < IN_FRAME_PINS; i++) {
-    pio_gpio_init(pio_alloc->pio, i+base_pin);
+    pio_gpio_init(pio_alloc->pio, i + base_pin);
 
     gpio_disable_pulls(i + base_pin);
   }
@@ -43,9 +43,7 @@ void in_frame_pio_init(pio_alloc_t *pio_alloc,  uint base_pin) {
   sm_config_set_clkdiv(&c, 1.0f);
 
   sm_config_set_in_pins(&c, base_pin);
-  /*sm_config_set_in_pin_base(&c, base_pin);
-  sm_config_set_in_pin_count(&c, IN_FRAME_PINS);a*/
-
+  
   pio_sm_init(pio_alloc->pio, pio_alloc->sm, pio_alloc->offset, &c);
  }
 

@@ -17,9 +17,11 @@
 
 // We need 6 consecutive pins
 // This is for the feather board
-#define LCD_BASE_PIN 24
+/*#define LCD_BASE_PIN 24
+#define LCD_OE_PIN 14*/
 
-#define LCD_OE_PIN 14
+#define LCD_BASE_PIN 0
+#define LCD_OE_PIN 7
 
 typedef uint32_t dvi_frame_buf_t[(FRAME_WIDTH / 32) * FRAME_HEIGHT];
 

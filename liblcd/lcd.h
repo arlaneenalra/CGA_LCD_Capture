@@ -30,8 +30,7 @@
 #define D2 (D0 + 2)
 #define D3 (D0 + 3)
 #define FRAME_START (D0 + 4)
-#define LATCH_LINE D0 + 5)
-#define DOT_CLOCK (D0 + 6)
+#define DOT_CLOCK (D0 + 5)
 
 #define OE_PIN  7
 

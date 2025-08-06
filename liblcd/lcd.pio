@@ -8,7 +8,7 @@
 
 ; Define offsets for the frame start and dot_clock input pins
 .define PUBLIC IN_FRAME_START_PIN_OFFSET 4 
-.define PUBLIC IN_FRAME_DOT_CLOCK_OFFSET 6
+.define PUBLIC IN_FRAME_DOT_CLOCK_OFFSET 5
 
 .pio_version 0       // only require PIO 0 (rp2040 comptible)
 
