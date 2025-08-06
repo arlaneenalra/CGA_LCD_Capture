@@ -51,5 +51,8 @@ setup() {
   )
 }
 
-TARGET_DIR=rp2040-feather PICO_BOARD=adafruit_feather_rp2040 PICO_PLATFORM=rp2040 DVI_DEFAULT_SERIAL_CONFIG=adafruit_feather_dvi_cfg setup 
+# Doesn't work yet.
+#TARGET_DIR=rp2040-feather PICO_BOARD=adafruit_feather_rp2040 PICO_PLATFORM=rp2040 DVI_DEFAULT_SERIAL_CONFIG=adafruit_feather_dvi_cfg setup 
+
+TARGET_DIR=rp2040 PICO_PLATFORM=rp2040 setup 
 PICO_PLATFORM=rp2350 PICO_BOARD=pico2 DVI_DEFAULT_SERIAL_CONFIG=pico_sock_cfg setup 

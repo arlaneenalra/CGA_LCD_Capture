@@ -96,20 +96,14 @@ int main() {
 
   set_sys_clock_khz(250000, true);
 
-  gpio_init(PICO_DEFAULT_LED_PIN);
-  gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
-
   // zero out our frame buffer
   memset((void *)buffer, 0x00, sizeof(buffer));
 
-  stdio_init_all();
-  
   in_frame_init(&dump_frame, D0, DMA_IRQ_0, OE_PIN);
 
   multicore_launch_core1(vga_core);
 
   // Start capturing frames
   frame_capture_irq();
-  
   frame_capture();
 }
