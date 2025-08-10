@@ -1,0 +1,6 @@
+outside
+207mm x 134mm +/- 1mm
+viewable
+195mm x 121 mm +/- 2mm
+
+234mm viewable diagonal.
